@@ -136,7 +136,7 @@ Menu::screen_sp_setup()
 
   if ( isSpecifyingVar(MENU_SPECIFY::WIN_SCORE) == true )
   {
-    draw_text( "Press [RETURN] to finish", 0.250f, 0.725f );
+    draw_text( "Press [X] to finish", 0.250f, 0.725f );
     draw_text( "specifying win score... ", 0.250f, 0.775f );
 
     return;
@@ -146,7 +146,7 @@ Menu::screen_sp_setup()
   switch (mSelectedItem)
   {
     case MENU_SP_SETUP::WIN_SCORE:
-      draw_text( "Press [RETURN] to specify score", 0.005f, 0.725f );
+      draw_text( "Press [X] to specify score", 0.005f, 0.725f );
       break;
 
     case MENU_SP_SETUP::ALT_HITBOXES:

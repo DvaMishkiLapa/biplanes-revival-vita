@@ -28,18 +28,6 @@
 
 // Vita-specific gamepad mappings
 #ifdef VITA_PLATFORM
-struct VitaGamepadBindings
-{
-  SDL_GameControllerButton throttleUp;
-  SDL_GameControllerButton throttleDown;
-  SDL_GameControllerButton turnLeft;
-  SDL_GameControllerButton turnRight;
-  SDL_GameControllerButton fire;
-  SDL_GameControllerButton jump;
-
-  VitaGamepadBindings() = default;
-};
-
 struct VitaGamepadState
 {
   bool current[SDL_CONTROLLER_BUTTON_MAX] {};
@@ -83,7 +71,6 @@ extern KeyBindings player1;
 extern KeyBindings player2;
 
 #ifdef VITA_PLATFORM
-extern VitaGamepadBindings vitaGamepad;
 extern VitaGamepadState vitaGamepadState;
 #endif
 
@@ -92,10 +79,6 @@ namespace defaults
 
 extern const KeyBindings player1;
 extern const KeyBindings player2;
-
-#ifdef VITA_PLATFORM
-extern const VitaGamepadBindings vitaGamepad;
-#endif
 
 } // namespace defaults
 
@@ -114,6 +97,10 @@ void setVitaController(SDL_GameController* controller);
 // Vita key emulation functions
 bool isVitaKeyPressed(const SDL_Scancode key);
 bool isVitaKeyDown(const SDL_Scancode key);
+bool isVitaKeyReleased(const SDL_Scancode key);
+
+// Vita button name function
+const char* getVitaButtonName(const SDL_Scancode key);
 #endif
 
 bool isKeyDown( const SDL_Scancode );

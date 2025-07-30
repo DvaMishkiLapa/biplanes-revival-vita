@@ -808,9 +808,10 @@ Menu::screen_main()
   draw_text( "Quit            ", 0.255f, 0.2855f + 0.0721f + button::sizeY * 4.f );
 #endif
 
-  draw_text( "Navigate menu using arrows/WASD ", 0.005f, 0.65f );
-  draw_text( " Press[RETURN] to enter submenu ", 0.005f, 0.70f );
-  draw_text( "  Press [F1] to see your stats  ", 0.005f, 0.75f );
+  draw_text( " Navigate menu using DPAD", 0.005f, 0.65f );
+  draw_text( "  [X] to enter submenu", 0.005f, 0.70f );
+  draw_text( "  [SELECT] to see your stats", 0.005f, 0.75f );
+  draw_text( "  [LEFT] to return", 0.005f, 0.80f );
 }
 
 void
@@ -851,7 +852,7 @@ Menu::screen_settings()
 
   if ( isSpecifyingVar(MENU_SPECIFY::AUDIO_VOLUME) == true )
   {
-    draw_text( "Press [RETURN] to finish", 0.250f, 0.700f );
+    draw_text( "Press [X] to finish", 0.250f, 0.700f );
     draw_text( "specifying audio volume ", 0.250f, 0.750f );
 
     return;
@@ -859,7 +860,7 @@ Menu::screen_settings()
 
   if ( isSpecifyingVar(MENU_SPECIFY::STEREO_DEPTH) == true )
   {
-    draw_text( "Press [RETURN] to finish", 0.250f, 0.700f );
+    draw_text( "Press [X] to finish", 0.250f, 0.700f );
     draw_text( "specifying stereo depth ", 0.250f, 0.750f );
 
     return;
@@ -870,21 +871,21 @@ Menu::screen_settings()
   {
     case MENU_SETTINGS::AUDIO_VOLUME:
     {
-      draw_text( "Press [RETURN] to specify      ", 0.005f, 0.700f );
+      draw_text( "Press [X] to specify      ", 0.005f, 0.700f );
       draw_text( "                   audio volume", 0.005f, 0.750f );
       break;
     }
 
     case MENU_SETTINGS::STEREO_DEPTH:
     {
-      draw_text( "Press [RETURN] to specify      ", 0.005f, 0.700f );
+      draw_text( "Press [X] to specify      ", 0.005f, 0.700f );
       draw_text( "                   stereo depth", 0.005f, 0.750f );
       break;
     }
 
     case MENU_SETTINGS::STATS_RESET:
     {
-      draw_text( "Press [RETURN] to reset        ", 0.005f, 0.700f );
+      draw_text( "Press [X] to reset        ", 0.005f, 0.700f );
       draw_text( "                    your stats ", 0.005f, 0.750f );
       break;
     }
@@ -936,17 +937,17 @@ Menu::screen_controls()
 
   draw_text( title,                         0.025f, 0.2855f );
   draw_text( "Accelerate          ",        0.025f, 0.2855f + 0.0721f );
-  draw_text( SDL_GetScancodeName(playerBindings.throttleUp),   0.700f, 0.2855f + 0.0721f );
+  draw_text( getVitaButtonName(playerBindings.throttleUp),   0.700f, 0.2855f + 0.0721f );
   draw_text( "Decelerate          ",        0.025f, 0.2855f + 0.0721f + button::sizeY );
-  draw_text( SDL_GetScancodeName(playerBindings.throttleDown), 0.700f, 0.2855f + 0.0721f + button::sizeY );
+  draw_text( getVitaButtonName(playerBindings.throttleDown), 0.700f, 0.2855f + 0.0721f + button::sizeY );
   draw_text( "Turn Anti-Clockwise ",        0.025f, 0.2855f + 0.0721f + button::sizeY * 2.f );
-  draw_text( SDL_GetScancodeName(playerBindings.turnLeft),     0.700f, 0.2855f + 0.0721f + button::sizeY * 2.f );
+  draw_text( getVitaButtonName(playerBindings.turnLeft),     0.700f, 0.2855f + 0.0721f + button::sizeY * 2.f );
   draw_text( "Turn Clockwise      ",        0.025f, 0.2855f + 0.0721f + button::sizeY * 3.f );
-  draw_text( SDL_GetScancodeName(playerBindings.turnRight),    0.700f, 0.2855f + 0.0721f + button::sizeY * 3.f );
+  draw_text( getVitaButtonName(playerBindings.turnRight),    0.700f, 0.2855f + 0.0721f + button::sizeY * 3.f );
   draw_text( "Fire                ",        0.025f, 0.2855f + 0.0721f + button::sizeY * 4.f );
-  draw_text( SDL_GetScancodeName(playerBindings.fire),          0.700f, 0.2855f + 0.0721f + button::sizeY * 4.f );
+  draw_text( getVitaButtonName(playerBindings.fire),          0.700f, 0.2855f + 0.0721f + button::sizeY * 4.f );
   draw_text( "Eject               ",        0.025f, 0.2855f + 0.0721f + button::sizeY * 5.f );
-  draw_text( SDL_GetScancodeName(playerBindings.jump),          0.700f, 0.2855f + 0.0721f + button::sizeY * 5.f );
+  draw_text( getVitaButtonName(playerBindings.jump),          0.700f, 0.2855f + 0.0721f + button::sizeY * 5.f );
   draw_text( togglePlayerText,              0.025f, 0.2855f + 0.0721f + button::sizeY * 6.f );
   draw_text( "Back                ",        0.025f, 0.2855f + 0.0721f + button::sizeY * 7.f );
 
@@ -954,14 +955,14 @@ Menu::screen_controls()
   {
     draw_text( "     Press the key you wish    ", 0.025f, 0.05f );
     draw_text( "  to assign to this function.  ", 0.025f, 0.05f * 2.0f );
-    draw_text( "     Press [ESC] to cancel.    ", 0.025f, 0.05f * 3.5f );
+    draw_text( "     Press [START] to cancel.    ", 0.025f, 0.05f * 3.5f );
   }
   else
   {
-    draw_text( "Press[RETURN] to remap selected", 0.025f, 0.025f );
-    draw_text( "          key binding.         ", 0.025f, 0.075f );
-    draw_text( "  Press [DELETE]  to reset it  ", 0.025f, 0.05f * 3.f );
-    draw_text( "       to default value.       ", 0.025f, 0.05f * 4.f );
+    draw_text( "Press [X] to remap selected", 0.025f, 0.025f );
+    draw_text( "          key binding.        ", 0.025f, 0.075f );
+    draw_text( " Press [TRIANGLE]  to reset it", 0.025f, 0.05f * 3.f );
+    draw_text( "      to default value.       ", 0.025f, 0.05f * 4.f );
   }
 }
 
@@ -987,15 +988,17 @@ Menu::screen_copyright()
   setRenderColor(constants::colors::background);
   SDL_RenderClear(gRenderer);
 
-  draw_text( "      'Bluetooth Biplanes'      ", 0, 0.350f );
-  draw_text( "      @ Morpheme Ltd. 2004      ", 0, 0.400f );
-  draw_text( "       All Rights Reserved      ", 0, 0.450f );
-  draw_text( "       www.morpheme.co.uk       ", 0, 0.500f );
+  draw_text( "      'Bluetooth Biplanes'      ", 0, 0.300f );
+  draw_text( "      @ Morpheme Ltd. 2004      ", 0, 0.350f );
+  draw_text( "       All Rights Reserved      ", 0, 0.400f );
+  draw_text( "       www.morpheme.co.uk       ", 0, 0.450f );
 
-  draw_text( "    Brought to PC on 01.04.20   ", 0, 0.650f );
-  draw_text( "     by casqade and xion at     ", 0, 0.700f );
-  draw_text( "     github.com/regular-dev     ", 0, 0.750f );
-  draw_text( "         regular-dev.org        ", 0, 0.800f );
+  draw_text( "    Brought to PC on 01.04.20   ", 0, 0.500f );
+  draw_text( "     by casqade and xion at     ", 0, 0.650f );
+  draw_text( "     github.com/regular-dev     ", 0, 0.700f );
+  draw_text( "         regular-dev.org        ", 0, 0.750f );
+  draw_text( "        Ported to PS Vita       ", 0, 0.800f );
+  draw_text( "  by github.com/DvaMishkiLapa   ", 0, 0.850f );
 }
 
 void

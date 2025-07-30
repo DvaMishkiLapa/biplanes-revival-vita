@@ -38,7 +38,6 @@ KeyBindings player1 = defaults::player1;
 KeyBindings player2 = defaults::player2;
 
 #ifdef VITA_PLATFORM
-VitaGamepadBindings vitaGamepad = defaults::vitaGamepad;
 VitaGamepadState vitaGamepadState {};
 #endif
 
@@ -88,26 +87,7 @@ const KeyBindings player2
 };
 
 #ifdef VITA_PLATFORM
-const VitaGamepadBindings vitaGamepad
-{
-//  THROTTLE_UP - D-pad Up
-  SDL_CONTROLLER_BUTTON_DPAD_UP,
-
-//  THROTTLE_DOWN - D-pad Down
-  SDL_CONTROLLER_BUTTON_DPAD_DOWN,
-
-//  TURN_LEFT - D-pad Left
-  SDL_CONTROLLER_BUTTON_DPAD_LEFT,
-
-//  TURN_RIGHT - D-pad Right
-  SDL_CONTROLLER_BUTTON_DPAD_RIGHT,
-
-//  FIRE - X button (Cross)
-  SDL_CONTROLLER_BUTTON_A,
-
-//  JUMP - Square button
-  SDL_CONTROLLER_BUTTON_X,
-};
+// Vita gamepad state is managed separately
 #endif
 
 } // namespace defaults
@@ -116,6 +96,96 @@ const VitaGamepadBindings vitaGamepad
 
 #ifdef VITA_PLATFORM
 SDL_GameController* vitaController = nullptr;
+
+// Vita key to gamepad button mapping
+static SDL_GameControllerButton vitaKeyMap[SDL_NUM_SCANCODES];
+
+// Initialize the mapping array at module load time
+static void initVitaKeyMap()
+{
+  // Initialize all to invalid button
+  for (int i = 0; i < SDL_NUM_SCANCODES; ++i)
+  {
+    vitaKeyMap[i] = SDL_CONTROLLER_BUTTON_INVALID;
+  }
+  
+  // Set up the mappings
+  vitaKeyMap[SDL_SCANCODE_UP] = SDL_CONTROLLER_BUTTON_DPAD_UP;
+  vitaKeyMap[SDL_SCANCODE_DOWN] = SDL_CONTROLLER_BUTTON_DPAD_DOWN;
+  vitaKeyMap[SDL_SCANCODE_LEFT] = SDL_CONTROLLER_BUTTON_DPAD_LEFT;
+  vitaKeyMap[SDL_SCANCODE_RIGHT] = SDL_CONTROLLER_BUTTON_DPAD_RIGHT;
+  vitaKeyMap[SDL_SCANCODE_RETURN] = SDL_CONTROLLER_BUTTON_A;
+  vitaKeyMap[SDL_SCANCODE_SPACE] = SDL_CONTROLLER_BUTTON_A;
+  vitaKeyMap[SDL_SCANCODE_ESCAPE] = SDL_CONTROLLER_BUTTON_START;
+  vitaKeyMap[SDL_SCANCODE_F1] = SDL_CONTROLLER_BUTTON_BACK;
+  vitaKeyMap[SDL_SCANCODE_DELETE] = SDL_CONTROLLER_BUTTON_Y;  // Changed from X to Y to avoid conflict
+  vitaKeyMap[SDL_SCANCODE_W] = SDL_CONTROLLER_BUTTON_DPAD_UP;
+  vitaKeyMap[SDL_SCANCODE_S] = SDL_CONTROLLER_BUTTON_DPAD_DOWN;
+  vitaKeyMap[SDL_SCANCODE_A] = SDL_CONTROLLER_BUTTON_DPAD_LEFT;
+  vitaKeyMap[SDL_SCANCODE_D] = SDL_CONTROLLER_BUTTON_DPAD_RIGHT;
+  
+  // Player 1 controls
+  vitaKeyMap[SDL_SCANCODE_LCTRL] = SDL_CONTROLLER_BUTTON_X;  // Jump/Catapult for player 1
+  
+  // Additional buttons
+  vitaKeyMap[SDL_SCANCODE_LSHIFT] = SDL_CONTROLLER_BUTTON_LEFTSHOULDER;  // L1
+  vitaKeyMap[SDL_SCANCODE_RSHIFT] = SDL_CONTROLLER_BUTTON_RIGHTSHOULDER;  // R1
+}
+
+// Helper function to get gamepad button for a key
+static SDL_GameControllerButton getVitaGamepadButton(const SDL_Scancode key)
+{
+  // Check bounds for safety
+  if (key < 0 || key >= SDL_NUM_SCANCODES)
+    return SDL_CONTROLLER_BUTTON_INVALID;
+    
+  return vitaKeyMap[key];
+}
+
+// Helper function to get Vita button name for a scancode
+const char* getVitaButtonName(const SDL_Scancode key)
+{
+#ifdef VITA_PLATFORM
+  SDL_GameControllerButton button = getVitaGamepadButton(key);
+  
+  switch (button)
+  {
+    case SDL_CONTROLLER_BUTTON_DPAD_UP:
+      return "Up";
+    case SDL_CONTROLLER_BUTTON_DPAD_DOWN:
+      return "Down";
+    case SDL_CONTROLLER_BUTTON_DPAD_LEFT:
+      return "Left";
+    case SDL_CONTROLLER_BUTTON_DPAD_RIGHT:
+      return "Right";
+    case SDL_CONTROLLER_BUTTON_A:
+      return "Cross";
+    case SDL_CONTROLLER_BUTTON_X:
+      return "Square";
+    case SDL_CONTROLLER_BUTTON_Y:
+      return "Triangle";
+    case SDL_CONTROLLER_BUTTON_B:
+      return "Circle";
+    case SDL_CONTROLLER_BUTTON_START:
+      return "Start";
+    case SDL_CONTROLLER_BUTTON_BACK:
+      return "Select";
+    case SDL_CONTROLLER_BUTTON_LEFTSHOULDER:
+      return "L1";
+    case SDL_CONTROLLER_BUTTON_RIGHTSHOULDER:
+      return "R1";
+    default:
+      return SDL_GetScancodeName(key);
+  }
+#else
+  return SDL_GetScancodeName(key);
+#endif
+}
+
+// Initialize the mapping at module load
+static struct VitaKeyMapInitializer {
+  VitaKeyMapInitializer() { initVitaKeyMap(); }
+} vitaKeyMapInitializer;
 #endif
 
 struct
@@ -221,70 +291,26 @@ void setVitaController(SDL_GameController* controller)
 // Vita key emulation - map gamepad buttons to keyboard keys
 bool isVitaKeyPressed(const SDL_Scancode key)
 {
-  switch (key)
-  {
-    case SDL_SCANCODE_UP:
-      return isGamepadButtonPressed(SDL_CONTROLLER_BUTTON_DPAD_UP);
-    case SDL_SCANCODE_DOWN:
-      return isGamepadButtonPressed(SDL_CONTROLLER_BUTTON_DPAD_DOWN);
-    case SDL_SCANCODE_LEFT:
-      return isGamepadButtonPressed(SDL_CONTROLLER_BUTTON_DPAD_LEFT);
-    case SDL_SCANCODE_RIGHT:
-      return isGamepadButtonPressed(SDL_CONTROLLER_BUTTON_DPAD_RIGHT);
-    case SDL_SCANCODE_RETURN:
-    case SDL_SCANCODE_SPACE:
-      return isGamepadButtonPressed(SDL_CONTROLLER_BUTTON_A);
-    case SDL_SCANCODE_ESCAPE:
-      return isGamepadButtonPressed(SDL_CONTROLLER_BUTTON_START);
-    case SDL_SCANCODE_F1:
-      return isGamepadButtonPressed(SDL_CONTROLLER_BUTTON_Y);
-    case SDL_SCANCODE_DELETE:
-      return isGamepadButtonPressed(SDL_CONTROLLER_BUTTON_X);
-    case SDL_SCANCODE_W:
-      return isGamepadButtonPressed(SDL_CONTROLLER_BUTTON_DPAD_UP);
-    case SDL_SCANCODE_S:
-      return isGamepadButtonPressed(SDL_CONTROLLER_BUTTON_DPAD_DOWN);
-    case SDL_SCANCODE_A:
-      return isGamepadButtonPressed(SDL_CONTROLLER_BUTTON_DPAD_LEFT);
-    case SDL_SCANCODE_D:
-      return isGamepadButtonPressed(SDL_CONTROLLER_BUTTON_DPAD_RIGHT);
-    default:
-      return false;
-  }
+  SDL_GameControllerButton button = getVitaGamepadButton(key);
+  if (button == SDL_CONTROLLER_BUTTON_INVALID)
+    return false;
+  return isGamepadButtonPressed(button);
 }
 
 bool isVitaKeyDown(const SDL_Scancode key)
 {
-  switch (key)
-  {
-    case SDL_SCANCODE_UP:
-      return isGamepadButtonDown(SDL_CONTROLLER_BUTTON_DPAD_UP);
-    case SDL_SCANCODE_DOWN:
-      return isGamepadButtonDown(SDL_CONTROLLER_BUTTON_DPAD_DOWN);
-    case SDL_SCANCODE_LEFT:
-      return isGamepadButtonDown(SDL_CONTROLLER_BUTTON_DPAD_LEFT);
-    case SDL_SCANCODE_RIGHT:
-      return isGamepadButtonDown(SDL_CONTROLLER_BUTTON_DPAD_RIGHT);
-    case SDL_SCANCODE_RETURN:
-    case SDL_SCANCODE_SPACE:
-      return isGamepadButtonDown(SDL_CONTROLLER_BUTTON_A);
-    case SDL_SCANCODE_ESCAPE:
-      return isGamepadButtonDown(SDL_CONTROLLER_BUTTON_START);
-    case SDL_SCANCODE_F1:
-      return isGamepadButtonDown(SDL_CONTROLLER_BUTTON_Y);
-    case SDL_SCANCODE_DELETE:
-      return isGamepadButtonDown(SDL_CONTROLLER_BUTTON_X);
-    case SDL_SCANCODE_W:
-      return isGamepadButtonDown(SDL_CONTROLLER_BUTTON_DPAD_UP);
-    case SDL_SCANCODE_S:
-      return isGamepadButtonDown(SDL_CONTROLLER_BUTTON_DPAD_DOWN);
-    case SDL_SCANCODE_A:
-      return isGamepadButtonDown(SDL_CONTROLLER_BUTTON_DPAD_LEFT);
-    case SDL_SCANCODE_D:
-      return isGamepadButtonDown(SDL_CONTROLLER_BUTTON_DPAD_RIGHT);
-    default:
-      return false;
-  }
+  SDL_GameControllerButton button = getVitaGamepadButton(key);
+  if (button == SDL_CONTROLLER_BUTTON_INVALID)
+    return false;
+  return isGamepadButtonDown(button);
+}
+
+bool isVitaKeyReleased(const SDL_Scancode key)
+{
+  SDL_GameControllerButton button = getVitaGamepadButton(key);
+  if (button == SDL_CONTROLLER_BUTTON_INVALID)
+    return false;
+  return isGamepadButtonReleased(button);
 }
 
 bool isGamepadButtonDown(const SDL_GameControllerButton button)
@@ -352,7 +378,7 @@ bool isUniversalKeyPressed(const SDL_Scancode key)
 bool isUniversalKeyReleased(const SDL_Scancode key)
 {
 #ifdef VITA_PLATFORM
-  return isKeyReleased(key) || isGamepadButtonReleased(SDL_CONTROLLER_BUTTON_DPAD_UP); // Simplified for now
+  return isKeyReleased(key) || isVitaKeyReleased(key);
 #else
   return isKeyReleased(key);
 #endif
@@ -413,92 +439,66 @@ getLocalControls(
 {
   Controls controls {};
 
+  // Use universal input functions for all platforms
+  if (  isUniversalKeyDown(bindings.throttleUp) == true &&
+        isUniversalKeyDown(bindings.throttleDown) == false )
+  {
+    controls.throttle = PLANE_THROTTLE::THROTTLE_INCREASE;
 #ifdef VITA_PLATFORM
-  // Use gamepad input for Vita
-  if (  isGamepadButtonDown(bindings::vitaGamepad.throttleUp) == true &&
-        isGamepadButtonDown(bindings::vitaGamepad.throttleDown) == false )
-  {
-    controls.throttle = PLANE_THROTTLE::THROTTLE_INCREASE;
     SCE_DBG_LOG_TRACE("Vita: Throttle UP");
-  }
-  else if ( isGamepadButtonDown(bindings::vitaGamepad.throttleDown) == true &&
-            isGamepadButtonDown(bindings::vitaGamepad.throttleUp) == false )
-  {
-    controls.throttle = PLANE_THROTTLE::THROTTLE_DECREASE;
-    SCE_DBG_LOG_TRACE("Vita: Throttle DOWN");
-  }
-  else
-    controls.throttle = PLANE_THROTTLE::THROTTLE_IDLE;
-
-  if (  isGamepadButtonDown(bindings::vitaGamepad.turnLeft) == true &&
-        isGamepadButtonDown(bindings::vitaGamepad.turnRight) == false )
-  {
-    controls.pitch = PLANE_PITCH::PITCH_LEFT;
-    SCE_DBG_LOG_TRACE("Vita: Turn LEFT");
-  }
-  else if ( isGamepadButtonDown(bindings::vitaGamepad.turnRight) == true &&
-            isGamepadButtonDown(bindings::vitaGamepad.turnLeft) == false )
-  {
-    controls.pitch = PLANE_PITCH::PITCH_RIGHT;
-    SCE_DBG_LOG_TRACE("Vita: Turn RIGHT");
-  }
-  else
-    controls.pitch = PLANE_PITCH::PITCH_IDLE;
-
-  // SHOOT
-  if ( isGamepadButtonDown(bindings::vitaGamepad.fire) == true )
-  {
-    controls.shoot = true;
-    SCE_DBG_LOG_TRACE("Vita: FIRE");
-  }
-  else
-    controls.shoot = false;
-
-  // EJECT
-  if ( isGamepadButtonDown(bindings::vitaGamepad.jump) == true )
-  {
-    controls.jump = true;
-    SCE_DBG_LOG_TRACE("Vita: JUMP");
-  }
-  else
-    controls.jump = false;
-
-#else
-  // Use keyboard input for other platforms
-  if (  isKeyDown(bindings.throttleUp) == true &&
-        isKeyDown(bindings.throttleDown) == false )
-    controls.throttle = PLANE_THROTTLE::THROTTLE_INCREASE;
-
-  else if ( isKeyDown(bindings.throttleDown) == true &&
-            isKeyDown(bindings.throttleUp) == false )
-    controls.throttle = PLANE_THROTTLE::THROTTLE_DECREASE;
-
-  else
-    controls.throttle = PLANE_THROTTLE::THROTTLE_IDLE;
-
-  if (  isKeyDown(bindings.turnLeft) == true &&
-        isKeyDown(bindings.turnRight) == false )
-    controls.pitch = PLANE_PITCH::PITCH_LEFT;
-
-  else if ( isKeyDown(bindings.turnRight) == true &&
-            isKeyDown(bindings.turnLeft) == false )
-    controls.pitch = PLANE_PITCH::PITCH_RIGHT;
-
-  else
-    controls.pitch = PLANE_PITCH::PITCH_IDLE;
-
-  // SHOOT
-  if ( isKeyDown(bindings.fire) == true )
-    controls.shoot = true;
-  else
-    controls.shoot = false;
-
-  // EJECT
-  if ( isKeyDown(bindings.jump) == true )
-    controls.jump = true;
-  else
-    controls.jump = false;
 #endif
+  }
+  else if ( isUniversalKeyDown(bindings.throttleDown) == true &&
+            isUniversalKeyDown(bindings.throttleUp) == false )
+  {
+    controls.throttle = PLANE_THROTTLE::THROTTLE_DECREASE;
+#ifdef VITA_PLATFORM
+    SCE_DBG_LOG_TRACE("Vita: Throttle DOWN");
+#endif
+  }
+  else
+    controls.throttle = PLANE_THROTTLE::THROTTLE_IDLE;
+
+  if (  isUniversalKeyDown(bindings.turnLeft) == true &&
+        isUniversalKeyDown(bindings.turnRight) == false )
+  {
+    controls.pitch = PLANE_PITCH::PITCH_LEFT;
+#ifdef VITA_PLATFORM
+    SCE_DBG_LOG_TRACE("Vita: Turn LEFT");
+#endif
+  }
+  else if ( isUniversalKeyDown(bindings.turnRight) == true &&
+            isUniversalKeyDown(bindings.turnLeft) == false )
+  {
+    controls.pitch = PLANE_PITCH::PITCH_RIGHT;
+#ifdef VITA_PLATFORM
+    SCE_DBG_LOG_TRACE("Vita: Turn RIGHT");
+#endif
+  }
+  else
+    controls.pitch = PLANE_PITCH::PITCH_IDLE;
+
+  // SHOOT
+  if ( isUniversalKeyDown(bindings.fire) == true )
+  {
+    controls.shoot = true;
+#ifdef VITA_PLATFORM
+    SCE_DBG_LOG_TRACE("Vita: FIRE");
+#endif
+  }
+  else
+    controls.shoot = false;
+
+  // EJECT
+  if ( isUniversalKeyDown(bindings.jump) == true )
+  {
+    controls.jump = true;
+#ifdef VITA_PLATFORM
+    SCE_DBG_LOG_TRACE("Vita: JUMP");
+#endif
+  }
+  else
+    controls.jump = false;
 
   return controls;
 }

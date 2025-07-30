@@ -407,69 +407,148 @@ Menu::ToggleDefiningKey(
   if ( mIsDefiningKey == true )
   {
     mIsDefiningKey = false;
+#ifdef VITA_PLATFORM
+    SCE_DBG_LOG_TRACE("Vita: Cancelled key definition");
+#endif
     return;
   }
 
   mIsDefiningKey = true;
   mKeyToDefine = actionToDefine;
+#ifdef VITA_PLATFORM
+  SCE_DBG_LOG_TRACE("Vita: Started defining key for action %d", (int)actionToDefine);
+#endif
 }
 
 void
 Menu::UpdateDefiningKey()
 {
-  if (  isUniversalKeyPressed(SDL_SCANCODE_ESCAPE) == true ||
-        isUniversalKeyPressed(SDL_SCANCODE_RETURN) == true )
+  // Check for exit conditions - use direct button checks to avoid conflicts
+  bool shouldExit = false;
+  
+  // Keyboard exit conditions
+  if (windowEvent.type == SDL_KEYDOWN && windowEvent.key.repeat == 0)
+  {
+    if (windowEvent.key.keysym.scancode == SDL_SCANCODE_ESCAPE ||
+        windowEvent.key.keysym.scancode == SDL_SCANCODE_RETURN)
+    {
+      shouldExit = true;
+    }
+  }
+#ifdef VITA_PLATFORM
+  // Vita-specific exit conditions - only START for exit
+  else if (isGamepadButtonPressed(SDL_CONTROLLER_BUTTON_START))
+  {
+    shouldExit = true;
+  }
+#endif
+
+  if (shouldExit)
   {
     ToggleDefiningKey(mKeyToDefine);
     return;
   }
 
+  auto& playerBindings =
+    mCurrentRoom == ROOMS::MENU_SETTINGS_CONTROLS_PLAYER1
+      ? bindings::player1
+      : bindings::player2;
+
+  SDL_Scancode newKey = SDL_SCANCODE_UNKNOWN;
+
+  // Check for keyboard input
   if (  windowEvent.type == SDL_KEYDOWN &&
         windowEvent.key.repeat == 0 )
   {
-    auto& playerBindings =
-      mCurrentRoom == ROOMS::MENU_SETTINGS_CONTROLS_PLAYER1
-        ? bindings::player1
-        : bindings::player2;
+    newKey = windowEvent.key.keysym.scancode;
+  }
+#ifdef VITA_PLATFORM
+  // Check for gamepad input on Vita
+  else
+  {
+    // Map gamepad buttons to keyboard keys for binding
+    if (isGamepadButtonPressed(SDL_CONTROLLER_BUTTON_DPAD_UP))
+      newKey = SDL_SCANCODE_UP;
+    else if (isGamepadButtonPressed(SDL_CONTROLLER_BUTTON_DPAD_DOWN))
+      newKey = SDL_SCANCODE_DOWN;
+    else if (isGamepadButtonPressed(SDL_CONTROLLER_BUTTON_DPAD_LEFT))
+      newKey = SDL_SCANCODE_LEFT;
+    else if (isGamepadButtonPressed(SDL_CONTROLLER_BUTTON_DPAD_RIGHT))
+      newKey = SDL_SCANCODE_RIGHT;
+    else if (isGamepadButtonPressed(SDL_CONTROLLER_BUTTON_A))
+      newKey = SDL_SCANCODE_SPACE;
+    else if (isGamepadButtonPressed(SDL_CONTROLLER_BUTTON_X))
+      newKey = SDL_SCANCODE_LCTRL;
+    else if (isGamepadButtonPressed(SDL_CONTROLLER_BUTTON_Y))
+      newKey = SDL_SCANCODE_DELETE;  // Reset key binding
+    else if (isGamepadButtonPressed(SDL_CONTROLLER_BUTTON_B))
+      newKey = SDL_SCANCODE_ESCAPE;
+    else if (isGamepadButtonPressed(SDL_CONTROLLER_BUTTON_LEFTSHOULDER))
+      newKey = SDL_SCANCODE_LSHIFT;  // L1
+    else if (isGamepadButtonPressed(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER))
+      newKey = SDL_SCANCODE_RSHIFT;  // R1
+  }
+#endif
 
-
-    const auto newKey = windowEvent.key.keysym.scancode;
+  if (newKey != SDL_SCANCODE_UNKNOWN)
+  {
+#ifdef VITA_PLATFORM
+    SCE_DBG_LOG_TRACE("Vita: Assigning key %s to action", SDL_GetScancodeName(newKey));
+#endif
 
     switch (mKeyToDefine)
     {
       case MENU_SETTINGS_CONTROLS::ACCELERATE:
       {
         assignKeyBinding(playerBindings.throttleUp, newKey);
+#ifdef VITA_PLATFORM
+        SCE_DBG_LOG_TRACE("Vita: Assigned throttle up to %s", SDL_GetScancodeName(newKey));
+#endif
         break;
       }
 
       case MENU_SETTINGS_CONTROLS::DECELERATE:
       {
         assignKeyBinding(playerBindings.throttleDown, newKey);
+#ifdef VITA_PLATFORM
+        SCE_DBG_LOG_TRACE("Vita: Assigned throttle down to %s", SDL_GetScancodeName(newKey));
+#endif
         break;
       }
 
       case MENU_SETTINGS_CONTROLS::LEFT:
       {
         assignKeyBinding(playerBindings.turnLeft, newKey);
+#ifdef VITA_PLATFORM
+        SCE_DBG_LOG_TRACE("Vita: Assigned turn left to %s", SDL_GetScancodeName(newKey));
+#endif
         break;
       }
 
       case MENU_SETTINGS_CONTROLS::RIGHT:
       {
         assignKeyBinding(playerBindings.turnRight, newKey);
+#ifdef VITA_PLATFORM
+        SCE_DBG_LOG_TRACE("Vita: Assigned turn right to %s", SDL_GetScancodeName(newKey));
+#endif
         break;
       }
 
       case MENU_SETTINGS_CONTROLS::SHOOT:
       {
         assignKeyBinding(playerBindings.fire, newKey);
+#ifdef VITA_PLATFORM
+        SCE_DBG_LOG_TRACE("Vita: Assigned fire to %s", SDL_GetScancodeName(newKey));
+#endif
         break;
       }
 
       case MENU_SETTINGS_CONTROLS::EJECT:
       {
         assignKeyBinding(playerBindings.jump, newKey);
+#ifdef VITA_PLATFORM
+        SCE_DBG_LOG_TRACE("Vita: Assigned jump to %s", SDL_GetScancodeName(newKey));
+#endif
         break;
       }
 
@@ -478,7 +557,8 @@ Menu::UpdateDefiningKey()
     }
 
     mIsDefiningKey = false;
-    SDL_FlushEvent(SDL_KEYDOWN);
+    if (windowEvent.type == SDL_KEYDOWN)
+      SDL_FlushEvent(SDL_KEYDOWN);
   }
 }
 

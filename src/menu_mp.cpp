@@ -124,7 +124,7 @@ Menu::screen_mp_mmake()
 
   if ( isSpecifyingVar(MENU_SPECIFY::PASSWORD) == true )
   {
-    draw_text( "Press [RETURN] to finish", 0.25f, 0.725f );
+    draw_text( "Press [X] to finish", 0.25f, 0.725f );
     draw_text( " specifying password... ", 0.25f, 0.775f );
 
     return;
@@ -141,7 +141,7 @@ Menu::screen_mp_mmake()
 
     case MENU_MP_MMAKE::SPECIFY_PASSWORD:
     {
-      draw_text( "Press[RETURN]to specify password", 0.005f, 0.725f );
+      draw_text( "Press [X] to specify password", 0.005f, 0.725f );
       break;
     }
 
@@ -244,7 +244,7 @@ Menu::screen_mp_dc_host()
 
   if ( isSpecifyingVar(MENU_SPECIFY::PORT) == true )
   {
-    draw_text( "Press [RETURN] to finish    ",  0.250f, 0.725f );
+    draw_text( "Press [X] to finish    ",  0.250f, 0.725f );
     draw_text( "     specifying port...     ",  0.250f, 0.775f );
 
     return;
@@ -262,7 +262,7 @@ Menu::screen_mp_dc_host()
 
     case MENU_MP_DC_HOST::SPECIFY_PORT:
     {
-      draw_text( "Press [RETURN] to specify port",
+      draw_text( "Press [X] to specify port",
         0.005f, 0.725f );
       break;
     }
@@ -318,7 +318,7 @@ Menu::screen_mp_dc_join()
 
   if ( isSpecifyingVar(MENU_SPECIFY::IP) == true )
   {
-    draw_text( "Press [RETURN] to finish", 0.250f, 0.600f );
+    draw_text( "Press [X] to finish", 0.250f, 0.600f );
     draw_text( "specifying server IP... ", 0.250f, 0.650f );
 
     return;
@@ -326,7 +326,7 @@ Menu::screen_mp_dc_join()
 
   else if ( isSpecifyingVar(MENU_SPECIFY::PORT) == true )
   {
-    draw_text( "Press [RETURN] to finish", 0.250f, 0.600f );
+    draw_text( "Press [X] to finish", 0.250f, 0.600f );
     draw_text( "specifying server port  ", 0.250f, 0.650f );
 
     return;
@@ -348,14 +348,14 @@ Menu::screen_mp_dc_join()
 
     case MENU_MP_DC_JOIN::SPECIFY_IP:
     {
-      draw_text( "Press [RETURN] to specify IP", 0.005f, 0.650f );
+      draw_text( "Press [X] to specify IP", 0.005f, 0.650f );
 
       break;
     }
 
     case MENU_MP_DC_JOIN::SPECIFY_PORT:
     {
-      draw_text( "Press [RETURN] to specify port", 0.005f, 0.650f );
+      draw_text( "Press [X] to specify port", 0.005f, 0.650f );
 
       break;
     }
@@ -413,7 +413,7 @@ Menu::screen_mp_hotseat()
 
   if ( isSpecifyingVar(MENU_SPECIFY::WIN_SCORE) == true )
   {
-    draw_text( "Press [RETURN] to finish", 0.250f, 0.725f );
+    draw_text( "Press [X] to finish", 0.250f, 0.725f );
     draw_text( "specifying win score... ", 0.250f, 0.775f );
 
     return;
@@ -423,7 +423,7 @@ Menu::screen_mp_hotseat()
   switch (mSelectedItem)
   {
     case MENU_SP_SETUP::WIN_SCORE:
-      draw_text( "Press [RETURN] to specify score", 0.005f, 0.725f );
+      draw_text( "Press [X] to specify score", 0.005f, 0.725f );
       break;
 
     case MENU_SP_SETUP::ALT_HITBOXES:

@@ -23,6 +23,13 @@
 #include <iosfwd>
 #include <string>
 
+#ifdef VITA_PLATFORM
+// Get PS Vita data directory path
+std::string getVitaDataPath();
+// Initialize PS Vita file system
+bool initVitaFileSystem();
+#endif
+
 
 void settingsWrite();
 bool settingsParse( std::ifstream&, std::string& );

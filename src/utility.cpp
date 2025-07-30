@@ -33,9 +33,77 @@
 #include <sstream>
 #include <iostream>
 
+#ifdef VITA_PLATFORM
+#include <psp2/libdbg.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
+#endif
+
 #define CONFIG_FILENAME BIPLANES_EXE_NAME ".conf"
 #define STATS_FILENAME BIPLANES_EXE_NAME ".stats"
 #define LOG_FILENAME BIPLANES_EXE_NAME ".log"
+
+// Global variable for PS Vita data directory
+#ifdef VITA_PLATFORM
+static std::string vitaDataPath = "ux0:data/biplanes_revival";
+
+// Function to get Vita data path (exported for other modules)
+std::string getVitaDataPath()
+{
+  return vitaDataPath;
+}
+
+// Simple function to ensure data directory exists
+static bool ensureDataDirectoryExists()
+{
+  SCE_DBG_LOG_TRACE("Vita: Checking if data directory exists: %s", vitaDataPath.c_str());
+  
+  struct stat st = {0};
+  if (stat(vitaDataPath.c_str(), &st) == -1) {
+    SCE_DBG_LOG_TRACE("Vita: Directory does not exist, creating...");
+    
+    // On PS Vita, ux0:data should already exist, so we only need to create our app directory
+    // Check if ux0:data exists first
+    std::string dataDir = "ux0:data";
+    struct stat dataSt = {0};
+    if (stat(dataDir.c_str(), &dataSt) == -1) {
+      SCE_DBG_LOG_ERROR("Vita: ux0:data directory does not exist! This should not happen on PS Vita");
+      return false;
+    }
+    
+    SCE_DBG_LOG_TRACE("Vita: ux0:data exists, permissions: %o", dataSt.st_mode & 0777);
+    
+    SCE_DBG_LOG_TRACE("Vita: ux0:data exists, creating app directory: %s", vitaDataPath.c_str());
+    if (mkdir(vitaDataPath.c_str(), 0755) == -1 && errno != EEXIST) {
+      SCE_DBG_LOG_ERROR("Vita: Failed to create app directory: %s (errno: %d)", vitaDataPath.c_str(), errno);
+      return false;
+    }
+    
+    SCE_DBG_LOG_TRACE("Vita: Successfully created data directory: %s", vitaDataPath.c_str());
+  } else {
+    SCE_DBG_LOG_TRACE("Vita: Data directory already exists: %s", vitaDataPath.c_str());
+  }
+  return true;
+}
+
+// Function to initialize PS Vita file system
+bool initVitaFileSystem()
+{
+  SCE_DBG_LOG_TRACE("Vita: Initializing file system...");
+  
+  // Ensure data directory exists
+  ensureDataDirectoryExists();
+  
+  SCE_DBG_LOG_TRACE("Vita: File system initialization completed");
+  SCE_DBG_LOG_TRACE("Vita: Data directory: %s", vitaDataPath.c_str());
+  
+  return true;
+}
+
+#endif
+
+
 
 
 static std::string
@@ -58,11 +126,13 @@ get_appimage_dir()
 static std::string
 get_config_path()
 {
-#if defined(_WIN32) || defined(__APPLE__) || defined(__MACH__)
+#ifdef VITA_PLATFORM
+  // Ensure data directory exists before returning path
+  ensureDataDirectoryExists();
+  return vitaDataPath + "/" + CONFIG_FILENAME;
+#elif defined(_WIN32) || defined(__APPLE__) || defined(__MACH__)
   return CONFIG_FILENAME;
-#endif
-
-
+#else
   const auto appImageDir = get_appimage_dir();
 
   if ( appImageDir.empty() == false )
@@ -76,16 +146,19 @@ get_config_path()
     return CONFIG_FILENAME;
 
   return std::string{configParentPath} + "/" CONFIG_FILENAME;
+#endif
 }
 
 static std::string
 get_log_path()
 {
-#if defined(_WIN32) || defined(__APPLE__) || defined(__MACH__)
+#ifdef VITA_PLATFORM
+  // Ensure data directory exists before returning path
+  ensureDataDirectoryExists();
+  return vitaDataPath + "/" + LOG_FILENAME;
+#elif defined(_WIN32) || defined(__APPLE__) || defined(__MACH__)
   return LOG_FILENAME;
-#endif
-
-
+#else
   const auto appImageDir = get_appimage_dir();
 
   if ( appImageDir.empty() == false )
@@ -104,29 +177,33 @@ get_log_path()
   }
 
   return std::string{logParentPath} + "/" LOG_FILENAME;
+#endif
 }
 
 static std::string
 get_stats_path()
 {
-#if defined(_WIN32) || defined(__APPLE__) || defined(__MACH__)
+#ifdef VITA_PLATFORM
+  // Ensure data directory exists before returning path
+  ensureDataDirectoryExists();
+  return vitaDataPath + "/" + STATS_FILENAME;
+#elif defined(_WIN32) || defined(__APPLE__) || defined(__MACH__) || defined(__MACH__)
   return STATS_FILENAME;
-#endif
-
-
+#else
   const auto appImageDir = get_appimage_dir();
 
   if ( appImageDir.empty() == false )
     return appImageDir + "/" STATS_FILENAME;
 
 
-  auto statsParentPath = std::getenv("XDG_DATA_HOME");
+  auto statsParentPath = std::getenv("XDG_STATE_HOME");
 
   if (  statsParentPath == nullptr ||
         std::string{statsParentPath}.empty() == true )
     return STATS_FILENAME;
 
   return std::string{statsParentPath} + "/" STATS_FILENAME;
+#endif
 }
 
 
@@ -139,12 +216,19 @@ settingsWrite()
 
   const auto configPath = get_config_path();
 
+#ifdef VITA_PLATFORM
+  SCE_DBG_LOG_TRACE("Vita: Writing settings to %s", configPath.c_str());
+#endif
+
   std::ofstream settings {configPath, std::ios::out};
 
   if ( settings.is_open() == false )
   {
     log_message( "LOG: Can't write to '" + configPath + "' !" );
     log_message( "User settings & key binds won't be saved!\n\n" );
+#ifdef VITA_PLATFORM
+    SCE_DBG_LOG_ERROR("Vita: Failed to open config file for writing: %s", configPath.c_str());
+#endif
     show_warning( "Warning!", "Can't write to '" + configPath + "' !\nUser settings & key binds won't be saved!" );
 
     return;
@@ -410,6 +494,11 @@ settingsParse(
 void
 logVersionAndReadSettings()
 {
+#ifdef VITA_PLATFORM
+  // Initialize Vita file system
+  initVitaFileSystem();
+#endif
+
   const auto& game = gameState();
 
   bool settingsReadSuccess = true;
@@ -425,7 +514,9 @@ logVersionAndReadSettings()
 
   if ( game.output.toFile == true )
   {
-    std::ofstream logFile { get_log_path(), std::ios::trunc };
+    const auto logPath = get_log_path();
+    
+    std::ofstream logFile { logPath, std::ios::trunc };
     logFile.close();
   }
 
@@ -472,16 +563,28 @@ log_message(
   const std::string& buffer3 )
 {
   const auto& game = gameState();
+  const std::string fullMessage = message + buffer1 + buffer2 + buffer3;
 
   if ( game.output.toConsole == true )
-    std::cout << message << buffer1 << buffer2 << buffer3;
+    std::cout << fullMessage;
+
+#ifdef VITA_PLATFORM
+  // Always log to Vita debug output for debugging
+  SCE_DBG_LOG_TRACE("%s", fullMessage.c_str());
+#endif
 
   if ( game.output.toFile == true )
   {
-    std::ofstream logFile { get_log_path(), std::ios::app };
+    const auto logPath = get_log_path();
+    
+    std::ofstream logFile { logPath, std::ios::app };
 
     if ( logFile.is_open() == true )
-      logFile << message << buffer1 << buffer2 << buffer3;
+      logFile << fullMessage;
+#ifdef VITA_PLATFORM
+    else
+      SCE_DBG_LOG_ERROR("Vita: Failed to open log file for writing: %s", logPath.c_str());
+#endif
   }
 }
 
@@ -548,10 +651,21 @@ stats_write()
 {
   log_message("OUTPUT: Writing stats", "\n");
 
-  std::ofstream statsOut { get_stats_path(), std::ios::trunc };
+  const auto statsPath = get_stats_path();
+  
+#ifdef VITA_PLATFORM
+  SCE_DBG_LOG_TRACE("Vita: Writing stats to %s", statsPath.c_str());
+#endif
+
+  std::ofstream statsOut { statsPath, std::ios::trunc };
 
   if ( statsOut.is_open() == false )
+  {
+#ifdef VITA_PLATFORM
+    SCE_DBG_LOG_ERROR("Vita: Failed to open stats file for writing: %s", statsPath.c_str());
+#endif
     return false;
+  }
 
   const auto& stats = gameState().stats.total;
 
@@ -582,10 +696,21 @@ stats_write()
 bool
 statsRead()
 {
-  std::ifstream statsInput {get_stats_path()};
+  const auto statsPath = get_stats_path();
+  
+#ifdef VITA_PLATFORM
+  SCE_DBG_LOG_TRACE("Vita: Reading stats from %s", statsPath.c_str());
+#endif
+
+  std::ifstream statsInput {statsPath};
 
   if ( statsInput.is_open() == false )
+  {
+#ifdef VITA_PLATFORM
+    SCE_DBG_LOG_ERROR("Vita: Failed to open stats file for reading: %s", statsPath.c_str());
+#endif
     return false;
+  }
 
 
   const std::string jsonInput

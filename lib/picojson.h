@@ -42,6 +42,12 @@
 #include <vector>
 #include <utility>
 
+// Suppress ABI warnings for GCC 7.1+
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpsabi"
+#endif
+
 // for isnan/isinf
 #if __cplusplus >= 201103L
 #include <cmath>
@@ -1163,6 +1169,11 @@ inline std::ostream &operator<<(std::ostream &os, const picojson::value &x) {
 }
 #ifdef _MSC_VER
 #pragma warning(pop)
+#endif
+
+// Restore GCC diagnostics
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
 #endif
 
 #endif

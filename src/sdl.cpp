@@ -117,13 +117,30 @@ SDL_init(
   SDL_DisplayMode dm {};
   SDL_GetDesktopDisplayMode( DISPLAY_INDEX, &dm );
 
+#ifdef VITA_PLATFORM
+  // Vita has fixed resolution 960x544, use full screen
+  canvas.windowWidth = 960;
+  canvas.windowHeight = 544;
+  log_message( "SDL Startup: Using Vita full screen resolution: " + std::to_string(canvas.windowWidth) + "x" + std::to_string(canvas.windowHeight) + "\n" );
+#else
   canvas.windowWidth = std::min(dm.w * 0.75f, dm.h * 0.75f);
   canvas.windowHeight = canvas.windowWidth / constants::aspectRatio;
+#endif
 #endif
 
 //  Create window
   log_message( "SDL Startup: Creating SDL window..." );
 
+#ifdef VITA_PLATFORM
+  // Create fullscreen window for Vita
+  gWindow = SDL_CreateWindow(
+    "Biplanes Revival v" BIPLANES_VERSION,
+    SDL_WINDOWPOS_UNDEFINED,
+    SDL_WINDOWPOS_UNDEFINED,
+    canvas.windowWidth,
+    canvas.windowHeight,
+    SDL_WINDOW_FULLSCREEN );
+#else
   gWindow = SDL_CreateWindow(
     "Biplanes Revival v" BIPLANES_VERSION,
     SDL_WINDOWPOS_UNDEFINED,
@@ -131,6 +148,7 @@ SDL_init(
     canvas.windowWidth,
     canvas.windowHeight,
     SDL_WINDOW_RESIZABLE );
+#endif
 
   if ( gWindow == nullptr )
   {
@@ -160,13 +178,18 @@ SDL_init(
 
     if ( gRenderer == nullptr )
     {
-      log_message( "\nSDL Startup: Renderer in software mode could not be created! SDL Error: ", SDL_GetError() );
-      show_warning( "SDL: Failed to create renderer in software mode!", SDL_GetError() );
+      log_message( "\nSDL Startup: Failed to create renderer in software mode! SDL Error: ", SDL_GetError() );
+      show_warning( "SDL: Failed to create renderer!", SDL_GetError() );
 
       return 1;
     }
   }
+
   log_message( "Done!\n" );
+
+  // Calculate virtual screen dimensions for proper scaling
+  recalculateVirtualScreen();
+  log_message( "SDL Startup: Virtual screen calculated: " + std::to_string((int)canvas.width) + "x" + std::to_string((int)canvas.height) + " at (" + std::to_string(canvas.originX) + "," + std::to_string(canvas.originY) + ")\n" );
 
 
 #if defined(__EMSCRIPTEN__)

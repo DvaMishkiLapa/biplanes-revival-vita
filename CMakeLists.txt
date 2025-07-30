@@ -23,8 +23,8 @@ if(DEFINED ENV{VITA_IP})
 endif()
 
 # Compiler flags for Vita
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -O2 -ffast-math")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -O2 -ffast-math -Wno-psabi")
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--allow-multiple-definition")
 
 # Create executable

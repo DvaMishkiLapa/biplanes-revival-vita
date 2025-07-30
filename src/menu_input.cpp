@@ -109,7 +109,7 @@ Menu::UpdateControls()
       MenuItemNext();
     else if (isButtonPressed(SDL_CONTROLLER_BUTTON_DPAD_UP))
       MenuItemPrevious();
-    else if (isButtonPressed(SDL_CONTROLLER_BUTTON_B) || isButtonPressed(SDL_CONTROLLER_BUTTON_LEFTSHOULDER))
+    else if (isButtonPressed(SDL_CONTROLLER_BUTTON_B))
       GoBack();
     else if (isButtonPressed(SDL_CONTROLLER_BUTTON_A))
       Select();

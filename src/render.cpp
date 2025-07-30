@@ -306,7 +306,8 @@ draw_window_letterbox()
     canvas.windowHeight - toWindowSpaceY(1.0f),
   };
 
-  setRenderColor(constants::colors::letterbox);
+  // Use blue background color instead of black letterbox
+  setRenderColor(constants::colors::background);
 
   SDL_RenderFillRectF(
     gRenderer,

@@ -33,6 +33,7 @@
 
 bin/
 build/
+build-vita/
 obj/
 .vscode/
 *.layout

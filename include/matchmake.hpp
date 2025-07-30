@@ -24,7 +24,11 @@
 #include <include/enums.hpp>
 #include <include/timer.hpp>
 
-#include <lib/Net.h>
+#if defined(VITA_PLATFORM)
+  #include <lib/Net-vita.h>
+#else
+  #include <lib/Net.h>
+#endif
 
 #include <string>
 

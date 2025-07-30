@@ -46,6 +46,8 @@
 #if defined(__EMSCRIPTEN__)
   #include <emscripten/emscripten.h>
   #include <emscripten/html5.h>
+#elif defined(VITA_PLATFORM)
+  #include <include/matchmake.hpp>
 #else
   #include <include/matchmake.hpp>
   #include <lib/Net.h>

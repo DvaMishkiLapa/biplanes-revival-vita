@@ -26,7 +26,11 @@
 #include <include/network_state.hpp>
 #include <include/variables.hpp>
 
-#include <lib/Net.h>
+#if defined(VITA_PLATFORM)
+  #include <lib/Net-vita.h>
+#else
+  #include <lib/Net.h>
+#endif
 
 #include <deque>
 

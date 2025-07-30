@@ -1,35 +1,47 @@
 cmake_minimum_required(VERSION 3.15)
 
+# PS Vita specific configuration
+if(NOT DEFINED CMAKE_TOOLCHAIN_FILE)
+  if(DEFINED ENV{VITASDK})
+    set(CMAKE_TOOLCHAIN_FILE "$ENV{VITASDK}/share/vita.toolchain.cmake" CACHE PATH "toolchain file")
+  else()
+    message(FATAL_ERROR "Please define VITASDK to point to your SDK path!")
+  endif()
+endif()
+
+include("$ENV{VITASDK}/share/vita.cmake" REQUIRED)
+
 set(TARGET BiplanesRevival)
 set(${TARGET}_VERSION 1.2.1)
 project(${TARGET} VERSION ${${TARGET}_VERSION} LANGUAGES C CXX)
 
+# Vita specific settings
+set(VITA_APP_NAME "${TARGET}")
+set(VITA_TITLEID  "BPREVIVAL")  # Valid Vita title ID format
+set(VITA_VERSION  "01.21")
+set(VITA_MKSFOEX_FLAGS "${VITA_MKSFOEX_FLAGS} -d PARENTAL_LEVEL=1 -d PSP2_SYSTEM_VER=00.000")
+
+# Compiler flags for Vita
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--allow-multiple-definition")
+
+# Create executable
 add_executable(${TARGET})
 
-option(BUILD_SHARED_LIBS "Build using shared libraries" ON)
-option(${TARGET}_ENABLE_STEP_DEBUGGING
-  "${TARGET}: Enable step-by-step mode controls for easier debugging" OFF)
-
-if (WIN32)
-  option(${TARGET}_DISABLE_CONSOLE "${TARGET}: Don't show console window" ON)
-endif()
-
-include(GNUInstallDirs)
-
+# Set C++ standard
 set_target_properties(${TARGET} PROPERTIES
   CXX_STANDARD_REQUIRED ON
   CXX_STANDARD 17
-  RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/${CMAKE_INSTALL_BINDIR}"
 )
 
-if (NOT ${CMAKE_SYSTEM_NAME} MATCHES "Emscripten")
-  list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake/sdl2)
+# Add Vita SDK modules path
+list(APPEND CMAKE_MODULE_PATH "${VITASDK}/share/cmake/Modules")
 
-  find_package(SDL2 2.0.10 REQUIRED)
-  find_package(SDL2_image REQUIRED)
-  find_package(SDL2_mixer REQUIRED)
-endif()
+# Find SDL2 libraries for Vita (simplified)
+find_package(SDL2 2.0.10 REQUIRED)
 
+# Add all source files
 target_sources(${TARGET} PRIVATE
   src/biplanes.cpp
 
@@ -46,10 +58,6 @@ target_sources(${TARGET} PRIVATE
   include/sounds.hpp
   include/textures.hpp
   include/variables.hpp
-
-  src/icon.rc
-  src/version.rc
-
 
   src/bullet.cpp
   include/bullet.hpp
@@ -103,144 +111,81 @@ target_sources(${TARGET} PRIVATE
 
   src/ai_stuff.cpp
   include/ai_stuff.hpp
+
+  # Network files (Vita-specific implementation)
+  lib/Net-vita.h
+  src/matchmake.cpp
+  include/matchmake.hpp
+  src/network.cpp
+  include/network.hpp
 )
 
-if (NOT ${CMAKE_SYSTEM_NAME} MATCHES "Emscripten")
-  target_sources(${TARGET} PRIVATE
-    lib/Net.h
-
-    src/matchmake.cpp
-    include/matchmake.hpp
-
-    src/network.cpp
-    include/network.hpp
-  )
-endif()
-
-if (${BUILD_SHARED_LIBS})
-  set(BUILD_SHARED_LIBS ON CACHE BOOL "" FORCE)
-
-  if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-    set_target_properties(${TARGET} PROPERTIES
-      MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL"
-    )
-  endif()
-else()
-  set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
-
-  if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-    set_target_properties(${TARGET} PROPERTIES
-      MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>"
-    )
-  else()
-    target_link_libraries(${TARGET} PUBLIC
-      -static
-      -static-libgcc
-      -static-libstdc++
-    )
-  endif()
-endif()
-
+# Add TimeUtils dependency
 add_subdirectory(deps/TimeUtils)
 
-
+# Compile definitions
 target_compile_definitions(${TARGET} PRIVATE
   BIPLANES_EXE_NAME="${TARGET}"
   BIPLANES_VERSION="${${TARGET}_VERSION}"
   _USE_MATH_DEFINES
+  VITA_PLATFORM
 )
 
-if (${${TARGET}_ENABLE_STEP_DEBUGGING})
-  target_compile_definitions(${TARGET} PRIVATE
-    BIPLANES_STEP_DEBUGGING_ENABLED
-  )
-endif()
-
-
+# Include directories
 target_include_directories(${TARGET} PRIVATE
   ${SDL2_INCLUDE_DIR}
-
   $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}>
-  $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 
+# Compiler options
+target_compile_options(${TARGET} PUBLIC -Wno-narrowing)
 
-if (NOT CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-  target_compile_options(${TARGET} PUBLIC -Wno-narrowing)
-endif()
-
-
-if (${CMAKE_SYSTEM_NAME} MATCHES "Emscripten")
-  target_compile_options(${TARGET} PUBLIC
-    --use-port=sdl2
-    --use-port=sdl2_mixer
-    --use-port=sdl2_image:formats=png
-  )
-
-  target_link_options(${TARGET} PUBLIC
-    --use-port=sdl2
-    --use-port=sdl2_mixer
-    --use-port=sdl2_image:formats=png
-    --embed-file ${CMAKE_INSTALL_BINDIR}/assets@/assets
-  )
-else()
-  target_link_libraries(${TARGET} PUBLIC
-    SDL2::Main
-    SDL2::Image
-    SDL2::Mixer
-  )
-endif()
-
+# Link libraries for Vita (simplified)
 target_link_libraries(${TARGET} PUBLIC
   TimeUtils::TimeUtils
+  SDL2_mixer
+  SDL2_image
+  SDL2
+  modplug
+  vorbisfile
+  opusfile
+  xmp
+  webpdecoder
+  pthread
+  webpdemux
+  vorbis
+  ogg
+  opus
+  vorbisidec
+
+  SceDisplay_stub
+  SceCtrl_stub
+  SceTouch_stub
+  SceMotion_stub
+  SceCommonDialog_stub
+  SceGxm_stub
+  SceAudioIn_stub
+  SceAudio_stub
+  SceHid_stub
+  SceNet_stub
+  SceNetCtl_stub
+  SceLibDbg_stub
 )
 
-
-if (WIN32)
-  target_link_libraries(${TARGET} PUBLIC
-    ws2_32
-  )
-
-  if (${${TARGET}_DISABLE_CONSOLE})
-    set_target_properties(${TARGET} PROPERTIES
-      WIN32_EXECUTABLE TRUE
-    )
-
-    target_link_libraries(${TARGET} PUBLIC
-      -mwindows
-    )
-  else()
-    set_target_properties(${TARGET} PROPERTIES
-      WIN32_EXECUTABLE FALSE
-    )
-
-    target_link_libraries(${TARGET} PUBLIC
-      -mconsole
-    )
-  endif()
-
-endif()
-
-
+# Copy assets to build directory
 file(
   COPY assets
   DESTINATION ${CMAKE_BINARY_DIR}/${CMAKE_INSTALL_BINDIR}
 )
 
-if (${CMAKE_SYSTEM_NAME} MATCHES "Emscripten")
-  file(
-    COPY wasm-data/index.html
-    DESTINATION ${CMAKE_BINARY_DIR}/${CMAKE_INSTALL_BINDIR}
-  )
-endif()
-
-install(TARGETS ${TARGET}
-  EXPORT ${TARGET} DESTINATION ${CMAKE_INSTALL_BINDIR}
-  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-  RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-)
-
-install(DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/assets
-  DESTINATION ${CMAKE_INSTALL_BINDIR}
-)
-
+# Create Vita package
+vita_create_self(${VITA_APP_NAME}.self ${TARGET})
+vita_create_vpk(${VITA_APP_NAME}.vpk ${VITA_TITLEID} ${VITA_APP_NAME}.self
+  VERSION ${VITA_VERSION}
+  NAME ${VITA_APP_NAME}
+  FILE sce_sys/icon0.png sce_sys/icon0.png
+  FILE sce_sys/livearea/contents/bg.png sce_sys/livearea/contents/bg.png
+  FILE sce_sys/livearea/contents/startup.png sce_sys/livearea/contents/startup.png
+  FILE sce_sys/livearea/contents/template.xml sce_sys/livearea/contents/template.xml
+  ./assets assets
+) 

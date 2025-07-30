@@ -51,13 +51,21 @@ struct Controls
 
 struct KeyBindings
 {
+#ifdef VITA_PLATFORM
+  SDL_GameControllerButton throttleUp {};
+  SDL_GameControllerButton throttleDown {};
+  SDL_GameControllerButton turnLeft {};
+  SDL_GameControllerButton turnRight {};
+  SDL_GameControllerButton fire {};
+  SDL_GameControllerButton jump {};
+#else
   SDL_Scancode throttleUp {};
   SDL_Scancode throttleDown {};
   SDL_Scancode turnLeft {};
   SDL_Scancode turnRight {};
-
   SDL_Scancode fire {};
   SDL_Scancode jump {};
+#endif
 
   KeyBindings() = default;
 
@@ -86,21 +94,29 @@ extern const KeyBindings player2;
 
 void readKeyboardInput();
 
+// Universal input functions
+bool isUniversalKeyDown();
+bool isUniversalKeyPressed();
+bool isUniversalKeyReleased();
+
 #ifdef VITA_PLATFORM
+// Vita-specific gamepad functions
 void readGamepadInput();
 bool isGamepadButtonDown(const SDL_GameControllerButton button);
 bool isGamepadButtonPressed(const SDL_GameControllerButton button);
 bool isGamepadButtonReleased(const SDL_GameControllerButton button);
+
+// Vita controller management
 SDL_GameController* getVitaController();
 void setVitaController(SDL_GameController* controller);
 
-// Vita key emulation functions
-bool isVitaKeyPressed(const SDL_Scancode key);
-bool isVitaKeyDown(const SDL_Scancode key);
-bool isVitaKeyReleased(const SDL_Scancode key);
+// Direct gamepad button functions
+bool isButtonDown(const SDL_GameControllerButton button);
+bool isButtonPressed(const SDL_GameControllerButton button);
+bool isButtonReleased(const SDL_GameControllerButton button);
 
-// Vita button name function
-const char* getVitaButtonName(const SDL_Scancode key);
+// Button name function
+const char* getButtonName(const SDL_GameControllerButton button);
 #endif
 
 bool isKeyDown( const SDL_Scancode );
@@ -112,7 +128,8 @@ bool isUniversalKeyDown( const SDL_Scancode key );
 bool isUniversalKeyPressed( const SDL_Scancode key );
 bool isUniversalKeyReleased( const SDL_Scancode key );
 
-Controls getLocalControls( const KeyBindings& = bindings::player1 );
+Controls getLocalControls();
+Controls getLocalControlsWithBindings(const KeyBindings& bindings);
 void processPlaneControls( Plane&, const Controls& );
 
 void assignKeyBinding(

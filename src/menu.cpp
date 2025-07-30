@@ -811,7 +811,7 @@ Menu::screen_main()
   draw_text( " Navigate menu using DPAD", 0.005f, 0.65f );
   draw_text( "  [X] to enter submenu", 0.005f, 0.70f );
   draw_text( "  [SELECT] to see your stats", 0.005f, 0.75f );
-  draw_text( "  [LEFT] to return", 0.005f, 0.80f );
+  draw_text( "  [CIRCLE] to return", 0.005f, 0.80f );
 }
 
 void
@@ -937,17 +937,41 @@ Menu::screen_controls()
 
   draw_text( title,                         0.025f, 0.2855f );
   draw_text( "Accelerate          ",        0.025f, 0.2855f + 0.0721f );
-  draw_text( getVitaButtonName(playerBindings.throttleUp),   0.700f, 0.2855f + 0.0721f );
+#ifdef VITA_PLATFORM
+  draw_text( getButtonName(playerBindings.throttleUp),   0.700f, 0.2855f + 0.0721f );
+#else
+  draw_text( SDL_GetScancodeName(playerBindings.throttleUp),   0.700f, 0.2855f + 0.0721f );
+#endif
   draw_text( "Decelerate          ",        0.025f, 0.2855f + 0.0721f + button::sizeY );
-  draw_text( getVitaButtonName(playerBindings.throttleDown), 0.700f, 0.2855f + 0.0721f + button::sizeY );
+#ifdef VITA_PLATFORM
+  draw_text( getButtonName(playerBindings.throttleDown), 0.700f, 0.2855f + 0.0721f + button::sizeY );
+#else
+  draw_text( SDL_GetScancodeName(playerBindings.throttleDown), 0.700f, 0.2855f + 0.0721f + button::sizeY );
+#endif
   draw_text( "Turn Anti-Clockwise ",        0.025f, 0.2855f + 0.0721f + button::sizeY * 2.f );
-  draw_text( getVitaButtonName(playerBindings.turnLeft),     0.700f, 0.2855f + 0.0721f + button::sizeY * 2.f );
+#ifdef VITA_PLATFORM
+  draw_text( getButtonName(playerBindings.turnLeft),     0.700f, 0.2855f + 0.0721f + button::sizeY * 2.f );
+#else
+  draw_text( SDL_GetScancodeName(playerBindings.turnLeft),     0.700f, 0.2855f + 0.0721f + button::sizeY * 2.f );
+#endif
   draw_text( "Turn Clockwise      ",        0.025f, 0.2855f + 0.0721f + button::sizeY * 3.f );
-  draw_text( getVitaButtonName(playerBindings.turnRight),    0.700f, 0.2855f + 0.0721f + button::sizeY * 3.f );
+#ifdef VITA_PLATFORM
+  draw_text( getButtonName(playerBindings.turnRight),    0.700f, 0.2855f + 0.0721f + button::sizeY * 3.f );
+#else
+  draw_text( SDL_GetScancodeName(playerBindings.turnRight),    0.700f, 0.2855f + 0.0721f + button::sizeY * 3.f );
+#endif
   draw_text( "Fire                ",        0.025f, 0.2855f + 0.0721f + button::sizeY * 4.f );
-  draw_text( getVitaButtonName(playerBindings.fire),          0.700f, 0.2855f + 0.0721f + button::sizeY * 4.f );
+#ifdef VITA_PLATFORM
+  draw_text( getButtonName(playerBindings.fire),          0.700f, 0.2855f + 0.0721f + button::sizeY * 4.f );
+#else
+  draw_text( SDL_GetScancodeName(playerBindings.fire),          0.700f, 0.2855f + 0.0721f + button::sizeY * 4.f );
+#endif
   draw_text( "Eject               ",        0.025f, 0.2855f + 0.0721f + button::sizeY * 5.f );
-  draw_text( getVitaButtonName(playerBindings.jump),          0.700f, 0.2855f + 0.0721f + button::sizeY * 5.f );
+#ifdef VITA_PLATFORM
+  draw_text( getButtonName(playerBindings.jump),          0.700f, 0.2855f + 0.0721f + button::sizeY * 5.f );
+#else
+  draw_text( SDL_GetScancodeName(playerBindings.jump),          0.700f, 0.2855f + 0.0721f + button::sizeY * 5.f );
+#endif
   draw_text( togglePlayerText,              0.025f, 0.2855f + 0.0721f + button::sizeY * 6.f );
   draw_text( "Back                ",        0.025f, 0.2855f + 0.0721f + button::sizeY * 7.f );
 

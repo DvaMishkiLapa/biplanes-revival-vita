@@ -511,10 +511,10 @@ game_loop_sp()
     case GAME_MODE::HUMAN_VS_HUMAN_HOTSEAT:
     {
       processPlaneControls(
-        planeBlue, getLocalControls(bindings::player2) );
+        planeBlue, getLocalControlsWithBindings(bindings::player2) );
 
       processPlaneControls(
-        planeRed, getLocalControls(bindings::player1) );
+        planeRed, getLocalControlsWithBindings(bindings::player1) );
 
       break;
     }

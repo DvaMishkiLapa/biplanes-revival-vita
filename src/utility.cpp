@@ -300,6 +300,46 @@ settingsParse(
   {
     auto& jsonControls = jsonValue["Controls"].get <picojson::object> ();
 
+#ifdef VITA_PLATFORM
+    // For Vita, we need to cast to SDL_GameControllerButton
+    try { bindings::player1.fire = (SDL_GameControllerButton) jsonControls.at( "FIRE" ).get <double> (); }
+    catch ( const std::exception& ) {};
+
+    try { bindings::player1.jump = (SDL_GameControllerButton) jsonControls.at( "JUMP" ).get <double> (); }
+    catch ( const std::exception& ) {};
+
+    try { bindings::player1.throttleDown = (SDL_GameControllerButton) jsonControls.at( "THROTTLE_DOWN" ).get <double> (); }
+    catch ( const std::exception& ) {};
+
+    try { bindings::player1.throttleUp = (SDL_GameControllerButton) jsonControls.at( "THROTTLE_UP" ).get <double> (); }
+    catch ( const std::exception& ) {};
+
+    try { bindings::player1.turnLeft = (SDL_GameControllerButton) jsonControls.at( "TURN_LEFT" ).get <double> (); }
+    catch ( const std::exception& ) {};
+
+    try { bindings::player1.turnRight = (SDL_GameControllerButton) jsonControls.at( "TURN_RIGHT" ).get <double> (); }
+    catch ( const std::exception& ) {};
+
+
+    try { bindings::player2.fire = (SDL_GameControllerButton) jsonControls.at( "FIRE_P2" ).get <double> (); }
+    catch ( const std::exception& ) {};
+
+    try { bindings::player2.jump = (SDL_GameControllerButton) jsonControls.at( "JUMP_P2" ).get <double> (); }
+    catch ( const std::exception& ) {};
+
+    try { bindings::player2.throttleDown = (SDL_GameControllerButton) jsonControls.at( "THROTTLE_DOWN_P2" ).get <double> (); }
+    catch ( const std::exception& ) {};
+
+    try { bindings::player2.throttleUp = (SDL_GameControllerButton) jsonControls.at( "THROTTLE_UP_P2" ).get <double> (); }
+    catch ( const std::exception& ) {};
+
+    try { bindings::player2.turnLeft = (SDL_GameControllerButton) jsonControls.at( "TURN_LEFT_P2" ).get <double> (); }
+    catch ( const std::exception& ) {};
+
+    try { bindings::player2.turnRight = (SDL_GameControllerButton) jsonControls.at( "TURN_RIGHT_P2" ).get <double> (); }
+    catch ( const std::exception& ) {};
+#else
+    // Original keyboard logic for non-Vita platforms
     try { bindings::player1.fire = (SDL_Scancode) jsonControls.at( "FIRE" ).get <double> (); }
     catch ( const std::exception& ) {};
 
@@ -336,7 +376,7 @@ settingsParse(
 
     try { bindings::player2.turnRight = (SDL_Scancode) jsonControls.at( "TURN_RIGHT_P2" ).get <double> (); }
     catch ( const std::exception& ) {};
-
+#endif
 
     bindings::player1.verifyAndFix(bindings::defaults::player1);
     bindings::player2.verifyAndFix(bindings::defaults::player2);

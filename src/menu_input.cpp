@@ -471,17 +471,11 @@ Menu::ToggleDefiningKey(
   if ( mIsDefiningKey == true )
   {
     mIsDefiningKey = false;
-#ifdef VITA_PLATFORM
-    SCE_DBG_LOG_TRACE("Vita: Cancelled key definition");
-#endif
     return;
   }
 
   mIsDefiningKey = true;
   mKeyToDefine = actionToDefine;
-#ifdef VITA_PLATFORM
-  SCE_DBG_LOG_TRACE("Vita: Started defining key for action %d", (int)actionToDefine);
-#endif
 }
 
 void
@@ -523,8 +517,6 @@ Menu::UpdateDefiningKey()
 
   if (newButton != SDL_CONTROLLER_BUTTON_INVALID)
   {
-    SCE_DBG_LOG_TRACE("Vita: Assigning button %s to action", getButtonName(newButton));
-
     auto& playerBindings =
       mCurrentRoom == ROOMS::MENU_SETTINGS_CONTROLS_PLAYER1
         ? bindings::player1
@@ -535,42 +527,36 @@ Menu::UpdateDefiningKey()
       case MENU_SETTINGS_CONTROLS::ACCELERATE:
       {
         playerBindings.throttleUp = newButton;
-        SCE_DBG_LOG_TRACE("Vita: Assigned throttle up to %s", getButtonName(newButton));
         break;
       }
 
       case MENU_SETTINGS_CONTROLS::DECELERATE:
       {
         playerBindings.throttleDown = newButton;
-        SCE_DBG_LOG_TRACE("Vita: Assigned throttle down to %s", getButtonName(newButton));
         break;
       }
 
       case MENU_SETTINGS_CONTROLS::LEFT:
       {
         playerBindings.turnLeft = newButton;
-        SCE_DBG_LOG_TRACE("Vita: Assigned turn left to %s", getButtonName(newButton));
         break;
       }
 
       case MENU_SETTINGS_CONTROLS::RIGHT:
       {
         playerBindings.turnRight = newButton;
-        SCE_DBG_LOG_TRACE("Vita: Assigned turn right to %s", getButtonName(newButton));
         break;
       }
 
       case MENU_SETTINGS_CONTROLS::SHOOT:
       {
         playerBindings.fire = newButton;
-        SCE_DBG_LOG_TRACE("Vita: Assigned fire to %s", getButtonName(newButton));
         break;
       }
 
       case MENU_SETTINGS_CONTROLS::EJECT:
       {
         playerBindings.jump = newButton;
-        SCE_DBG_LOG_TRACE("Vita: Assigned jump to %s", getButtonName(newButton));
         break;
       }
 
@@ -581,7 +567,6 @@ Menu::UpdateDefiningKey()
     mIsDefiningKey = false;
   }
 #else
-  // Original keyboard logic for non-Vita platforms
   SDL_Scancode newKey = SDL_SCANCODE_UNKNOWN;
 
   if (isUniversalKeyPressed(SDL_SCANCODE_ESCAPE) || isUniversalKeyPressed(SDL_SCANCODE_RETURN))

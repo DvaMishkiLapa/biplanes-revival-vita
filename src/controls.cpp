@@ -24,9 +24,7 @@
 #include <SDL_keyboard.h>
 #include <SDL_gamecontroller.h>
 
-#ifdef VITA_PLATFORM
-#include <psp2/libdbg.h>
-#endif
+
 
 #include <cstring>
 
@@ -101,28 +99,18 @@ void readGamepadInput()
 {
   if (vitaController == nullptr)
   {
-    SCE_DBG_LOG_ERROR("Vita: Controller is null in readGamepadInput");
     return;
   }
 
   // Update previous state
   for (int i = 0; i < SDL_CONTROLLER_BUTTON_MAX; ++i)
-  {
     vitaGamepadState.previous[i] = vitaGamepadState.current[i];
-  }
 
   // Read current state
   for (int i = 0; i < SDL_CONTROLLER_BUTTON_MAX; ++i)
   {
     bool currentState = SDL_GameControllerGetButton(vitaController, static_cast<SDL_GameControllerButton>(i));
     vitaGamepadState.current[i] = currentState;
-    
-    // Log state changes for debugging
-    if (vitaGamepadState.current[i] != vitaGamepadState.previous[i])
-    {
-      SCE_DBG_LOG_TRACE("Vita Button %d state changed: %s", i, 
-        vitaGamepadState.current[i] ? "PRESSED" : "RELEASED");
-    }
   }
 }
 
@@ -200,8 +188,6 @@ KeyBindings::verifyAndFix(
   const KeyBindings& fallback )
 {
 #ifdef VITA_PLATFORM
-  // For Vita, we don't need to check bounds since SDL_GameControllerButton is an enum
-  // Just verify that the buttons are valid
   if ( fire == SDL_CONTROLLER_BUTTON_INVALID )
     fire = fallback.fire;
   if ( jump == SDL_CONTROLLER_BUTTON_INVALID )
@@ -215,7 +201,6 @@ KeyBindings::verifyAndFix(
   if ( turnRight == SDL_CONTROLLER_BUTTON_INVALID )
     turnRight = fallback.turnRight;
 #else
-  // Original keyboard logic for non-Vita platforms
   if ( fire >= SDL_NUM_SCANCODES )
     fire = fallback.fire;
   if ( jump >= SDL_NUM_SCANCODES )
@@ -270,32 +255,19 @@ isKeyReleased(
     keyboardState.previous[key] == true;
 }
 
-// Universal input functions
 bool isUniversalKeyDown(const SDL_Scancode key)
 {
-#ifdef VITA_PLATFORM
-  return isKeyDown(key);  // Only keyboard for Vita, no emulation needed
-#else
   return isKeyDown(key);
-#endif
 }
 
 bool isUniversalKeyPressed(const SDL_Scancode key)
 {
-#ifdef VITA_PLATFORM
-  return isKeyPressed(key);  // Only keyboard for Vita, no emulation needed
-#else
   return isKeyPressed(key);
-#endif
 }
 
 bool isUniversalKeyReleased(const SDL_Scancode key)
 {
-#ifdef VITA_PLATFORM
-  return isKeyReleased(key);  // Only keyboard for Vita, no emulation needed
-#else
   return isKeyReleased(key);
-#endif
 }
 
 
@@ -305,11 +277,8 @@ assignKeyBinding(
   const SDL_Scancode newBinding )
 {
 #ifdef VITA_PLATFORM
-  // For Vita, we don't use this function since we work directly with SDL_GameControllerButton
-  // This function is only used for non-Vita platforms
   targetBinding = newBinding;
 #else
-  // Original logic for non-Vita platforms
   if ( false )
     ;
   else if ( newBinding == bindings::player1.throttleUp )
@@ -346,87 +315,51 @@ Controls getLocalControls()
   Controls controls {};
 
 #ifdef VITA_PLATFORM
-  // Use direct gamepad button functions
   if (isButtonDown(bindings::player1.throttleUp) && !isButtonDown(bindings::player1.throttleDown))
-  {
     controls.throttle = PLANE_THROTTLE::THROTTLE_INCREASE;
-    SCE_DBG_LOG_TRACE("Vita: Throttle UP");
-  }
   else if (isButtonDown(bindings::player1.throttleDown) && !isButtonDown(bindings::player1.throttleUp))
-  {
     controls.throttle = PLANE_THROTTLE::THROTTLE_DECREASE;
-    SCE_DBG_LOG_TRACE("Vita: Throttle DOWN");
-  }
   else
     controls.throttle = PLANE_THROTTLE::THROTTLE_IDLE;
 
   if (isButtonDown(bindings::player1.turnLeft) && !isButtonDown(bindings::player1.turnRight))
-  {
     controls.pitch = PLANE_PITCH::PITCH_LEFT;
-    SCE_DBG_LOG_TRACE("Vita: Turn LEFT");
-  }
   else if (isButtonDown(bindings::player1.turnRight) && !isButtonDown(bindings::player1.turnLeft))
-  {
     controls.pitch = PLANE_PITCH::PITCH_RIGHT;
-    SCE_DBG_LOG_TRACE("Vita: Turn RIGHT");
-  }
   else
     controls.pitch = PLANE_PITCH::PITCH_IDLE;
 
-  // SHOOT
   if (isButtonDown(bindings::player1.fire))
-  {
     controls.shoot = true;
-    SCE_DBG_LOG_TRACE("Vita: FIRE");
-  }
   else
     controls.shoot = false;
 
-  // EJECT
   if (isButtonDown(bindings::player1.jump))
-  {
     controls.jump = true;
-    SCE_DBG_LOG_TRACE("Vita: JUMP");
-  }
   else
     controls.jump = false;
 #else
-  // Original keyboard logic for non-Vita platforms
   if (isUniversalKeyDown(bindings::player1.throttleUp) && !isUniversalKeyDown(bindings::player1.throttleDown))
-  {
     controls.throttle = PLANE_THROTTLE::THROTTLE_INCREASE;
-  }
   else if (isUniversalKeyDown(bindings::player1.throttleDown) && !isUniversalKeyDown(bindings::player1.throttleUp))
-  {
     controls.throttle = PLANE_THROTTLE::THROTTLE_DECREASE;
-  }
   else
     controls.throttle = PLANE_THROTTLE::THROTTLE_IDLE;
 
   if (isUniversalKeyDown(bindings::player1.turnLeft) && !isUniversalKeyDown(bindings::player1.turnRight))
-  {
     controls.pitch = PLANE_PITCH::PITCH_LEFT;
-  }
   else if (isUniversalKeyDown(bindings::player1.turnRight) && !isUniversalKeyDown(bindings::player1.turnLeft))
-  {
     controls.pitch = PLANE_PITCH::PITCH_RIGHT;
-  }
   else
     controls.pitch = PLANE_PITCH::PITCH_IDLE;
 
-  // SHOOT
   if (isUniversalKeyDown(bindings::player1.fire))
-  {
     controls.shoot = true;
-  }
   else
     controls.shoot = false;
 
-  // EJECT
   if (isUniversalKeyDown(bindings::player1.jump))
-  {
     controls.jump = true;
-  }
   else
     controls.jump = false;
 #endif
@@ -439,87 +372,51 @@ Controls getLocalControlsWithBindings(const KeyBindings& bindings)
   Controls controls {};
 
 #ifdef VITA_PLATFORM
-  // Use direct gamepad button functions with provided bindings
   if (isButtonDown(bindings.throttleUp) && !isButtonDown(bindings.throttleDown))
-  {
     controls.throttle = PLANE_THROTTLE::THROTTLE_INCREASE;
-    SCE_DBG_LOG_TRACE("Vita: Throttle UP");
-  }
   else if (isButtonDown(bindings.throttleDown) && !isButtonDown(bindings.throttleUp))
-  {
     controls.throttle = PLANE_THROTTLE::THROTTLE_DECREASE;
-    SCE_DBG_LOG_TRACE("Vita: Throttle DOWN");
-  }
   else
     controls.throttle = PLANE_THROTTLE::THROTTLE_IDLE;
 
   if (isButtonDown(bindings.turnLeft) && !isButtonDown(bindings.turnRight))
-  {
     controls.pitch = PLANE_PITCH::PITCH_LEFT;
-    SCE_DBG_LOG_TRACE("Vita: Turn LEFT");
-  }
   else if (isButtonDown(bindings.turnRight) && !isButtonDown(bindings.turnLeft))
-  {
     controls.pitch = PLANE_PITCH::PITCH_RIGHT;
-    SCE_DBG_LOG_TRACE("Vita: Turn RIGHT");
-  }
   else
     controls.pitch = PLANE_PITCH::PITCH_IDLE;
 
-  // SHOOT
   if (isButtonDown(bindings.fire))
-  {
     controls.shoot = true;
-    SCE_DBG_LOG_TRACE("Vita: FIRE");
-  }
   else
     controls.shoot = false;
 
-  // EJECT
   if (isButtonDown(bindings.jump))
-  {
     controls.jump = true;
-    SCE_DBG_LOG_TRACE("Vita: JUMP");
-  }
   else
     controls.jump = false;
 #else
-  // Original keyboard logic for non-Vita platforms
   if (isUniversalKeyDown(bindings.throttleUp) && !isUniversalKeyDown(bindings.throttleDown))
-  {
     controls.throttle = PLANE_THROTTLE::THROTTLE_INCREASE;
-  }
   else if (isUniversalKeyDown(bindings.throttleDown) && !isUniversalKeyDown(bindings.throttleUp))
-  {
     controls.throttle = PLANE_THROTTLE::THROTTLE_DECREASE;
-  }
   else
     controls.throttle = PLANE_THROTTLE::THROTTLE_IDLE;
 
   if (isUniversalKeyDown(bindings.turnLeft) && !isUniversalKeyDown(bindings.turnRight))
-  {
     controls.pitch = PLANE_PITCH::PITCH_LEFT;
-  }
   else if (isUniversalKeyDown(bindings.turnRight) && !isUniversalKeyDown(bindings.turnLeft))
-  {
     controls.pitch = PLANE_PITCH::PITCH_RIGHT;
-  }
   else
     controls.pitch = PLANE_PITCH::PITCH_IDLE;
 
-  // SHOOT
   if (isUniversalKeyDown(bindings.fire))
-  {
     controls.shoot = true;
-  }
   else
     controls.shoot = false;
 
-  // EJECT
   if (isUniversalKeyDown(bindings.jump))
-  {
     controls.jump = true;
-  }
   else
     controls.jump = false;
 #endif

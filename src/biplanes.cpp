@@ -245,11 +245,11 @@ game_main_loop()
 
     queryWindowSize();
     readKeyboardInput();
-    
+
 #ifdef VITA_PLATFORM
     readGamepadInput();
 #endif
-    
+
     menu.UpdateControls();
   }
 

@@ -8,8 +8,6 @@ on:
       - '**/*.md'
       - 'docs/**'
       - 'README.md'
-      - 'gyro_accel_tester'
-      - 'demo'
   pull_request:
     branches:
       - master
@@ -17,8 +15,6 @@ on:
       - '**/*.md'
       - 'docs/**'
       - 'README.md'
-      - 'gyro_accel_tester'
-      - 'demo'
   release:
     types: [published]
 
@@ -70,7 +66,7 @@ jobs:
           path: ./build/BiplanesRevival.elf
 
   upload_release:
-    needs: [build_bp, build_windows_client]
+    needs: [build_bp]
     runs-on: ubuntu-latest
     steps:
       - name: Download BiplanesRevival.vpk artifact

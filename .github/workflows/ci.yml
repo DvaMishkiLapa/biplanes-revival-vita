@@ -1,0 +1,108 @@
+name: Biplanes Revival for PS Vita builds
+
+on:
+  push:
+    branches:
+      - master
+    paths-ignore:
+      - '**/*.md'
+      - 'docs/**'
+      - 'README.md'
+      - 'gyro_accel_tester'
+      - 'demo'
+  pull_request:
+    branches:
+      - master
+    paths-ignore:
+      - '**/*.md'
+      - 'docs/**'
+      - 'README.md'
+      - 'gyro_accel_tester'
+      - 'demo'
+  release:
+    types: [published]
+
+jobs:
+  update_release_tags:
+    if: ${{ github.event_name != 'release' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create development latest release
+        if: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/master' }}
+        uses: slord399/action-automatic-releases@v1.0.1
+        with:
+          repo_token: "${{ secrets.GITHUB_TOKEN }}"
+          automatic_release_tag: latest
+          prerelease: true
+          title: "Development latest build"
+
+  build_bp:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install VitaSDK
+        run: |
+          echo "VITASDK=/usr/local/vitasdk" >> $GITHUB_ENV
+          git clone https://github.com/vitasdk/vdpm
+          cd vdpm
+          export VITASDK=/usr/local/vitasdk
+          export PATH="$VITASDK/bin:$PATH"
+          ./bootstrap-vitasdk.sh
+          ./install-all.sh
+          ./vdpm flatbuffers
+
+      - name: Build Biplanes Revival
+        run: |
+          cmake -S . -B build -D CMAKE_BUILD_TYPE=Debug && cmake --build build
+          cp ./build/BiplanesRevival ./build/BiplanesRevival.elf
+
+      - name: Upload VPK as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: BiplanesRevival.vpk
+          path: ./build/BiplanesRevival.vpk
+
+      - name: Upload ELF as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: BiplanesRevival.elf
+          path: ./build/BiplanesRevival.elf
+
+  upload_release:
+    needs: [build_bp, build_windows_client]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download BiplanesRevival.vpk artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: BiplanesRevival.vpk
+          path: ./release
+
+      - name: Download BiplanesRevival.elf artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: BiplanesRevival.elf
+          path: ./release
+
+      - name: Upload latest development release
+        if: ${{ github.event_name != 'release' && github.event_name != 'pull_request' && github.ref == 'refs/heads/master' }}
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: ./release/*
+          tag: latest
+          overwrite: true
+          file_glob: true
+          prerelease: true
+
+      - name: Upload release from tag
+        if: ${{ github.event_name == 'release' }}
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: ./release/*
+          tag: ${{ github.event.release.tag_name }}
+          overwrite: true
+          file_glob: true
+          prerelease: true

@@ -25,6 +25,10 @@
 #include <include/sounds.hpp>
 #include <include/utility.hpp>
 
+#ifdef VITA_PLATFORM
+#include <psp2/libdbg.h>
+#endif
+
 #include <cmath>
 
 
@@ -58,6 +62,47 @@ SDL_init(
 
   log_message( "Done!\n" );
 
+#ifdef VITA_PLATFORM
+  // Initialize gamepad subsystem for Vita
+  log_message( "SDL Startup: Initializing gamepad subsystem..." );
+  SCE_DBG_LOG_TRACE("Vita: Initializing gamepad subsystem...");
+  
+  if ( SDL_InitSubSystem( SDL_INIT_GAMECONTROLLER ) != 0 )
+  {
+    log_message( "\nSDL Startup: SDL gamepad subsystem failed to initialize! SDL Error: ", SDL_GetError(), "\n" );
+    SCE_DBG_LOG_ERROR("Vita: SDL gamepad subsystem failed to initialize! SDL Error: %s", SDL_GetError());
+    show_warning( "SDL: Failed to initialize gamepad!", SDL_GetError() );
+  }
+  else
+  {
+    log_message( "Done!\n" );
+    SCE_DBG_LOG_TRACE("Vita: Gamepad subsystem initialized successfully");
+    
+    // Disable touch events as mouse events for Vita (recommended)
+    SDL_SetHint(SDL_HINT_TOUCH_MOUSE_EVENTS, "0");
+    
+    // Open the Vita's built-in controller
+    extern SDL_GameController* getVitaController();
+    extern void setVitaController(SDL_GameController* controller);
+    
+    SDL_GameController* controller = SDL_GameControllerOpen(0);
+    setVitaController(controller);
+    
+    if (controller)
+    {
+      log_message( "SDL Startup: Vita controller opened successfully!\n" );
+      SCE_DBG_LOG_TRACE("Vita: Controller opened successfully");
+    }
+    else
+    {
+      log_message( "\nSDL Startup: Failed to open Vita controller! SDL Error: ", SDL_GetError(), "\n" );
+      SCE_DBG_LOG_ERROR("Vita: Failed to open controller! SDL Error: %s", SDL_GetError());
+    }
+    
+    // Disable front touchscreen if needed
+    // SDL_setenv("VITA_DISABLE_TOUCH_FRONT", "1", 1);
+  }
+#endif
 
 //  Set texture filtering to linear
   if ( SDL_SetHint( SDL_HINT_RENDER_SCALE_QUALITY, "0" ) == false )
@@ -217,6 +262,19 @@ SDL_close()
   gWindow = {};
   gRenderer = {};
 
+#ifdef VITA_PLATFORM
+  // Close Vita controller
+  extern SDL_GameController* getVitaController();
+  extern void setVitaController(SDL_GameController* controller);
+  SDL_GameController* controller = getVitaController();
+  if (controller)
+  {
+    log_message( "EXIT: Closing Vita controller..." );
+    SDL_GameControllerClose(controller);
+    setVitaController(nullptr);
+    log_message( "Done!\n" );
+  }
+#endif
 
 //  Quit SDL subsystems
   log_message( "EXIT: Closing audio..." );

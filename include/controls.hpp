@@ -24,7 +24,32 @@
 #include <include/enums.hpp>
 
 #include <SDL_scancode.h>
+#include <SDL_gamecontroller.h>
 
+// Vita-specific gamepad mappings
+#ifdef VITA_PLATFORM
+struct VitaGamepadBindings
+{
+  SDL_GameControllerButton throttleUp;
+  SDL_GameControllerButton throttleDown;
+  SDL_GameControllerButton turnLeft;
+  SDL_GameControllerButton turnRight;
+  SDL_GameControllerButton fire;
+  SDL_GameControllerButton jump;
+
+  VitaGamepadBindings() = default;
+};
+
+struct VitaGamepadState
+{
+  bool current[SDL_CONTROLLER_BUTTON_MAX] {};
+  bool previous[SDL_CONTROLLER_BUTTON_MAX] {};
+
+  VitaGamepadState() = default;
+};
+
+extern SDL_GameController* vitaController;
+#endif
 
 struct Controls
 {
@@ -32,7 +57,6 @@ struct Controls
   PLANE_THROTTLE throttle {};
   bool shoot {};
   bool jump {};
-
 
   Controls() = default;
 };
@@ -47,12 +71,10 @@ struct KeyBindings
   SDL_Scancode fire {};
   SDL_Scancode jump {};
 
-
   KeyBindings() = default;
 
   void verifyAndFix( const KeyBindings& fallback );
 };
-
 
 namespace bindings
 {
@@ -60,22 +82,48 @@ namespace bindings
 extern KeyBindings player1;
 extern KeyBindings player2;
 
+#ifdef VITA_PLATFORM
+extern VitaGamepadBindings vitaGamepad;
+extern VitaGamepadState vitaGamepadState;
+#endif
+
 namespace defaults
 {
 
 extern const KeyBindings player1;
 extern const KeyBindings player2;
 
+#ifdef VITA_PLATFORM
+extern const VitaGamepadBindings vitaGamepad;
+#endif
+
 } // namespace defaults
 
 } // namespace bindings
 
-
 void readKeyboardInput();
+
+#ifdef VITA_PLATFORM
+void readGamepadInput();
+bool isGamepadButtonDown(const SDL_GameControllerButton button);
+bool isGamepadButtonPressed(const SDL_GameControllerButton button);
+bool isGamepadButtonReleased(const SDL_GameControllerButton button);
+SDL_GameController* getVitaController();
+void setVitaController(SDL_GameController* controller);
+
+// Vita key emulation functions
+bool isVitaKeyPressed(const SDL_Scancode key);
+bool isVitaKeyDown(const SDL_Scancode key);
+#endif
 
 bool isKeyDown( const SDL_Scancode );
 bool isKeyPressed( const SDL_Scancode );
 bool isKeyReleased( const SDL_Scancode );
+
+// Universal input functions that work on all platforms
+bool isUniversalKeyDown( const SDL_Scancode key );
+bool isUniversalKeyPressed( const SDL_Scancode key );
+bool isUniversalKeyReleased( const SDL_Scancode key );
 
 Controls getLocalControls( const KeyBindings& = bindings::player1 );
 void processPlaneControls( Plane&, const Controls& );

@@ -9,17 +9,18 @@ if(NOT DEFINED CMAKE_TOOLCHAIN_FILE)
   endif()
 endif()
 
-include("$ENV{VITASDK}/share/vita.cmake" REQUIRED)
-
+# Vita specific settings
 set(TARGET BiplanesRevival)
 set(${TARGET}_VERSION 1.2.1)
 project(${TARGET} VERSION ${${TARGET}_VERSION} LANGUAGES C CXX)
-
-# Vita specific settings
+include("${VITASDK}/share/vita.cmake" REQUIRED)
 set(VITA_APP_NAME "${TARGET}")
 set(VITA_TITLEID  "BPREVIVAL")  # Valid Vita title ID format
 set(VITA_VERSION  "01.21")
-set(VITA_MKSFOEX_FLAGS "${VITA_MKSFOEX_FLAGS} -d PARENTAL_LEVEL=1 -d PSP2_SYSTEM_VER=00.000")
+
+if(DEFINED ENV{VITA_IP})
+  set(VITA_IP $ENV{VITA_IP})
+endif()
 
 # Compiler flags for Vita
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall")
@@ -189,3 +190,25 @@ vita_create_vpk(${VITA_APP_NAME}.vpk ${VITA_TITLEID} ${VITA_APP_NAME}.self
   FILE sce_sys/livearea/contents/template.xml sce_sys/livearea/contents/template.xml
   ./assets assets
 ) 
+
+# Optional: Send the VPK directly to the PS Vita
+if (VITA_IP)
+  add_custom_target(send
+    COMMAND "echo" destroy | nc ${VITA_IP} 1338
+    COMMAND "sleep" 1s
+    COMMAND unzip -o ${VITA_APP_NAME}.vpk eboot.bin -d ${CMAKE_BINARY_DIR}
+    COMMAND "curl" --ftp-method nocwd -T ${CMAKE_BINARY_DIR}/eboot.bin "ftp://${VITA_IP}:1337/ux0:/app/${VITA_TITLEID}/"
+    COMMAND "echo" launch ${VITA_TITLEID} | nc ${VITA_IP} 1338
+    DEPENDS ${VITA_APP_NAME}.vpk
+  )
+endif()
+
+if(DEFINED ENV{VITA_IP})
+  set(PARSECOREPATH $ENV{PARSECOREPATH})
+endif()
+
+# Optional: Dump debugging information
+add_custom_target(dump
+  COMMAND ${CMAKE_SOURCE_DIR}/get_dump.sh ${VITA_IP}
+  COMMAND python3 ${PARSECOREPATH} coredump ${CMAKE_PROJECT_NAME}
+)

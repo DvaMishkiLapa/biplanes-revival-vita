@@ -22,10 +22,17 @@
 #include <include/sdl.hpp>
 #include <include/constants.hpp>
 #include <include/game_state.hpp>
+#include <include/network_state.hpp>
+#include <include/network_data.hpp>
 #include <include/ai_stuff.hpp>
 #include <include/controls.hpp>
 #include <include/variables.hpp>
 #include <include/utility.hpp>
+
+#ifdef VITA_PLATFORM
+#include <SDL_gamecontroller.h>
+#include <psp2/libdbg.h>
+#endif
 
 
 void
@@ -34,16 +41,16 @@ Menu::UpdateControls()
   auto& game = gameState();
 
 #if defined(BIPLANES_STEP_DEBUGGING_ENABLED)
-  game.debug.stepByStepMode = isKeyDown(SDL_SCANCODE_Q);
+  game.debug.stepByStepMode = isUniversalKeyDown(SDL_SCANCODE_Q);
 
-  if ( isKeyPressed(SDL_SCANCODE_E) == true )
+  if ( isUniversalKeyPressed(SDL_SCANCODE_E) == true )
       game.debug.advanceOneTick = true;
 #endif
 
 
   if ( mCurrentRoom == ROOMS::GAME )
   {
-    if ( isKeyPressed(SDL_SCANCODE_ESCAPE) == true )
+    if ( isUniversalKeyPressed(SDL_SCANCODE_ESCAPE) == true )
       GoBack();
 
     return;
@@ -54,7 +61,7 @@ Menu::UpdateControls()
   {
     UpdateTyping();
 
-    if ( isKeyPressed(SDL_SCANCODE_RETURN) == true )
+    if ( isUniversalKeyPressed(SDL_SCANCODE_RETURN) == true )
       Select();
 
     return;
@@ -64,7 +71,7 @@ Menu::UpdateControls()
   {
     UpdateSliderEditing();
 
-    if ( isKeyPressed(SDL_SCANCODE_RETURN) == true )
+    if ( isUniversalKeyPressed(SDL_SCANCODE_RETURN) == true )
       Select();
 
     return;
@@ -77,23 +84,23 @@ Menu::UpdateControls()
   {
     auto& game = gameState();
 
-    if (  isKeyPressed(SDL_SCANCODE_DOWN) == true ||
-          isKeyPressed(SDL_SCANCODE_S) == true )
+    if (  isUniversalKeyPressed(SDL_SCANCODE_DOWN) == true ||
+          isUniversalKeyPressed(SDL_SCANCODE_S) == true )
       MenuItemNext();
 
-    else if ( isKeyPressed(SDL_SCANCODE_UP) == true ||
-              isKeyPressed(SDL_SCANCODE_W) == true )
+    else if ( isUniversalKeyPressed(SDL_SCANCODE_UP) == true ||
+              isUniversalKeyPressed(SDL_SCANCODE_W) == true )
       MenuItemPrevious();
 
-    else if ( isKeyPressed(SDL_SCANCODE_ESCAPE) == true ||
-              isKeyPressed(SDL_SCANCODE_LEFT) == true ||
-              isKeyPressed(SDL_SCANCODE_A) == true )
+    else if ( isUniversalKeyPressed(SDL_SCANCODE_ESCAPE) == true ||
+              isUniversalKeyPressed(SDL_SCANCODE_LEFT) == true ||
+              isUniversalKeyPressed(SDL_SCANCODE_A) == true )
       GoBack();
 
-    else if ( isKeyPressed(SDL_SCANCODE_DELETE) == true )
+    else if ( isUniversalKeyPressed(SDL_SCANCODE_DELETE) == true )
       ResetKey();
 
-    else if ( isKeyPressed(SDL_SCANCODE_F1) == true &&
+    else if ( isUniversalKeyPressed(SDL_SCANCODE_F1) == true &&
               mCurrentRoom == ROOMS::MENU_MAIN )
     {
       setMessage(MESSAGE_TYPE::NONE);
@@ -106,9 +113,9 @@ Menu::UpdateControls()
     }
   }
 
-  if (  isKeyPressed(SDL_SCANCODE_RETURN) == true ||
-        isKeyPressed(SDL_SCANCODE_RIGHT) == true ||
-        isKeyPressed(SDL_SCANCODE_D) == true )
+  if (  isUniversalKeyPressed(SDL_SCANCODE_RETURN) == true ||
+        isUniversalKeyPressed(SDL_SCANCODE_RIGHT) == true ||
+        isUniversalKeyPressed(SDL_SCANCODE_D) == true )
     Select();
 }
 
@@ -360,8 +367,8 @@ Menu::UpdateSliderEditing()
   const uint8_t maxSliderValue = 100;
 
 
-  if ( isKeyPressed(SDL_SCANCODE_LEFT) == true ||
-       isKeyPressed(SDL_SCANCODE_A) == true )
+  if ( isUniversalKeyPressed(SDL_SCANCODE_LEFT) == true ||
+       isUniversalKeyPressed(SDL_SCANCODE_A) == true )
   {
     if ( *sliderValue >= 10 )
       *sliderValue -= 10;
@@ -369,15 +376,15 @@ Menu::UpdateSliderEditing()
       *sliderValue = 0;
   }
 
-  else if ( isKeyPressed(SDL_SCANCODE_DOWN) == true ||
-            isKeyPressed(SDL_SCANCODE_S) == true )
+  else if ( isUniversalKeyPressed(SDL_SCANCODE_DOWN) == true ||
+            isUniversalKeyPressed(SDL_SCANCODE_S) == true )
   {
     if ( *sliderValue > 0 )
       --*sliderValue;
   }
 
-  else if ( isKeyPressed(SDL_SCANCODE_RIGHT) == true ||
-            isKeyPressed(SDL_SCANCODE_D) == true )
+  else if ( isUniversalKeyPressed(SDL_SCANCODE_RIGHT) == true ||
+            isUniversalKeyPressed(SDL_SCANCODE_D) == true )
   {
     if ( *sliderValue < maxSliderValue - 10 )
       *sliderValue += 10;
@@ -385,8 +392,8 @@ Menu::UpdateSliderEditing()
       *sliderValue = maxSliderValue;
   }
 
-  else if ( isKeyPressed(SDL_SCANCODE_UP) == true ||
-            isKeyPressed(SDL_SCANCODE_W) == true )
+  else if ( isUniversalKeyPressed(SDL_SCANCODE_UP) == true ||
+            isUniversalKeyPressed(SDL_SCANCODE_W) == true )
   {
     if ( *sliderValue < maxSliderValue )
       ++*sliderValue;
@@ -410,8 +417,8 @@ Menu::ToggleDefiningKey(
 void
 Menu::UpdateDefiningKey()
 {
-  if (  isKeyPressed(SDL_SCANCODE_ESCAPE) == true ||
-        isKeyPressed(SDL_SCANCODE_RETURN) == true )
+  if (  isUniversalKeyPressed(SDL_SCANCODE_ESCAPE) == true ||
+        isUniversalKeyPressed(SDL_SCANCODE_RETURN) == true )
   {
     ToggleDefiningKey(mKeyToDefine);
     return;

@@ -64,7 +64,7 @@ static bool ensureDataDirectoryExists()
     }
 
     if (mkdir(vitaDataPath.c_str(), 0755) == -1 && errno != EEXIST) {
-      log_message("Vita: Failed to create app directory: ", vitaDataPath, " (errno: ", std::to_string(errno), ")");
+      log_message("Vita: Failed to create app directory: ", vitaDataPath, " (errno: ", std::to_string(errno));
       return false;
     }
   }

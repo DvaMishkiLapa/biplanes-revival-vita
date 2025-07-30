@@ -75,7 +75,6 @@ SDL_init(
   {
     log_message( "Done!\n" );
 
-    // Disable touch events as mouse events for Vita (recommended)
     SDL_SetHint(SDL_HINT_TOUCH_MOUSE_EVENTS, "0");
 
     // Open the Vita's built-in controller
@@ -94,8 +93,7 @@ SDL_init(
       log_message( "\nSDL Startup: Failed to open Vita controller! SDL Error: ", SDL_GetError(), "\n" );
     }
 
-    // Disable front touchscreen if needed
-    // SDL_setenv("VITA_DISABLE_TOUCH_FRONT", "1", 1);
+    SDL_setenv("VITA_DISABLE_TOUCH_FRONT", "1", 1);
   }
 #endif
 

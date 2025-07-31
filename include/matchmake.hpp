@@ -33,7 +33,7 @@
 #include <string>
 
 
-#define MATCHMAKE_SOCKET_PORT 50005
+#define MATCHMAKE_SOCKET_PORT 8008 // 50005 not available on PS Vita
 #define MATCHMAKE_MSG_TYPE "type"
 #define MATCHMAKE_MSG_PASS "matchpass"
 #define MATCHMAKE_MSG_CID  "client_id"

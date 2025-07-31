@@ -12,6 +12,11 @@
   #include <psp2/net/netctl.h>
   #include <psp2/kernel/threadmgr.h>
   #include <psp2/libdbg.h>
+  #include <sys/socket.h>
+  #include <netinet/in.h>
+  #include <arpa/inet.h>
+  #include <unistd.h>
+  #include <errno.h>
 #else
   #error "This file is for PS Vita only"
 #endif
@@ -23,7 +28,6 @@
 #include <sstream>
 #include <list>
 #include <vector>
-
 #include <include/utility.hpp>
 
 namespace net
@@ -120,12 +124,12 @@ namespace net
 
     static Address ResolveHostname( const std::string& hostname )
     {
-      SCE_DBG_LOG_INFO("NETWORK: Resolving hostname '%s'", hostname.c_str());
+      log_message( "NETWORK: Resolving hostname '", hostname, "'\n" );
 
       // For Vita, we'll use a simple approach
       // In a real implementation, you might want to use sceNetGetHostByName
       // For now, we'll just return an empty address
-      SCE_DBG_LOG_INFO("NETWORK: Hostname resolution not implemented for Vita yet");
+      log_message( "NETWORK: Hostname resolution not implemented for Vita yet\n" );
       return {};
     }
 
@@ -137,13 +141,53 @@ namespace net
   // sockets
   inline bool InitializeSockets()
   {
-    // Vita doesn't need explicit socket initialization
-    return true;
+    // VitaSDK automatically initializes the network subsystem
+    // We don't need to call sceNetInit or sceNetCtlInit explicitly
+    log_message( "NETWORK: Vita network subsystem initialization skipped (handled by VitaSDK)\n" );
+    return false; // Return false (0) to indicate success
   }
 
   inline void ShutdownSockets()
   {
-    // Vita doesn't need explicit socket shutdown
+    // VitaSDK handles network shutdown automatically
+    log_message( "NETWORK: Vita network subsystem shutdown skipped (handled by VitaSDK)\n" );
+  }
+
+  // Check if port is available for PS Vita
+  inline bool isPortAvailable(uint16_t port)
+  {
+    // PS Vita reserved ports: 1-1023, 9293-9308, 40000-65535
+    if (port >= 1 && port <= 1023) return false;
+    if (port >= 9293 && port <= 9308) return false;
+    if (port >= 40000 && port <= 65535) return false;
+    
+    // Available ranges: 1024-9292, 9309-39999
+    return true;
+  }
+
+  // Find next available port starting from given port
+  inline uint16_t findAvailablePort(uint16_t startPort = 8080)
+  {
+    uint16_t port = startPort;
+    
+    // Try ports in safe ranges
+    for (int attempt = 0; attempt < 100; attempt++) // Limit attempts
+    {
+      if (isPortAvailable(port))
+      {
+        log_message( "NETWORK: Found available port: ", std::to_string(port), "\n" );
+        return port;
+      }
+      
+      port++;
+      
+      // Skip reserved ranges
+      if (port == 9293) port = 9309;
+      if (port == 40000) port = 1024; // Wrap around to safe range
+    }
+    
+    log_message( "NETWORK: Could not find available port, using default: 8080\n" );
+    return 8080; // Fallback
   }
 
   class Socket
@@ -163,38 +207,78 @@ namespace net
     {
       assert( !IsOpen() );
 
-      // create socket
-      socketHandle = sceNetSocket( "UDP", SCE_NET_AF_INET, SCE_NET_SOCK_DGRAM, SCE_NET_IPPROTO_UDP );
+#ifdef VITA_PLATFORM
+      // Check if port is in Vita's allowed range
+      if (!isPortAvailable(port))
+      {
+        log_message( "NETWORK: Port ", std::to_string(port), " is in Vita's reserved range!\n" );
+        log_message( "NETWORK: Available ranges: 1024-9292, 9309-39999\n" );
+        return false;
+      }
+#endif
+
+      log_message( "NETWORK: Creating socket for port ", std::to_string(port), "\n" );
+
+      // create socket using standard POSIX socket
+      socketHandle = socket( AF_INET, SOCK_DGRAM, IPPROTO_UDP );
 
       if ( socketHandle < 0 )
       {
-        SCE_DBG_LOG_ERROR( "NETWORK: Failed to create socket!" );
+        log_message( "NETWORK: Failed to create socket! Error code: ", std::to_string(socketHandle), "\n" );
         socketHandle = -1;
         return false;
       }
 
-      // bind to port
-      SceNetSockaddrIn address;
-      address.sin_family = SCE_NET_AF_INET;
-      address.sin_addr.s_addr = SCE_NET_INADDR_ANY;
-      address.sin_port = sceNetHtons( port );
+      log_message( "NETWORK: Socket created successfully with handle: ", std::to_string(socketHandle), "\n" );
 
-      if ( sceNetBind( socketHandle, (SceNetSockaddr*)&address, sizeof(address) ) < 0 )
+      // bind to port
+      struct sockaddr_in address;
+      address.sin_family = AF_INET;
+      address.sin_addr.s_addr = INADDR_ANY;
+      address.sin_port = htons( port );
+
+      log_message( "NETWORK: Attempting to bind socket to port ", std::to_string(port), "\n" );
+      
+      int bindResult = bind( socketHandle, (struct sockaddr*)&address, sizeof(address) );
+      if ( bindResult < 0 )
       {
-        SCE_DBG_LOG_ERROR( "NETWORK: Failed to bind a socket!" );
+        log_message( "NETWORK: Failed to bind a socket! Error code: ", std::to_string(bindResult) + " (errno: " + std::to_string(errno) + ")\n" );
+        
+        // Try to get error description
+        switch(errno) {
+          case EADDRINUSE:
+            log_message( "NETWORK: Error: Address already in use (port may be occupied)\n" );
+            break;
+          case EACCES:
+            log_message( "NETWORK: Error: Permission denied\n" );
+            break;
+          case EINVAL:
+            log_message( "NETWORK: Error: Invalid argument\n" );
+            break;
+          default:
+            log_message( "NETWORK: Error: Unknown error\n" );
+            break;
+        }
+        
         Close();
         return false;
       }
+
+      log_message( "NETWORK: Socket bound successfully to port ", std::to_string(port), "\n" );
 
       // set non-blocking io
       int nonBlocking = 1;
-      if ( sceNetSetsockopt( socketHandle, SCE_NET_SOL_SOCKET, SCE_NET_SO_NBIO, &nonBlocking, sizeof(nonBlocking) ) < 0 )
+      log_message( "NETWORK: Setting socket to non-blocking mode\n" );
+      
+      int setoptResult = setsockopt( socketHandle, SOL_SOCKET, SO_NONBLOCK, &nonBlocking, sizeof(nonBlocking) );
+      if ( setoptResult < 0 )
       {
-        SCE_DBG_LOG_ERROR( "NETWORK: Failed to set Non-Blocking mode for a socket!" );
+        log_message( "NETWORK: Failed to set Non-Blocking mode for a socket! Error code: ", std::to_string(setoptResult), "\n" );
         Close();
         return false;
       }
 
+      log_message( "NETWORK: Socket configured successfully\n" );
       return true;
     }
 
@@ -202,7 +286,7 @@ namespace net
     {
       if ( socketHandle >= 0 )
       {
-        sceNetSocketClose( socketHandle );
+        close( socketHandle );
         socketHandle = -1;
       }
     }
@@ -223,12 +307,12 @@ namespace net
       assert( destination.GetAddress() != 0 );
       assert( destination.GetPort() != 0 );
 
-      SceNetSockaddrIn address;
-      address.sin_family = SCE_NET_AF_INET;
-      address.sin_addr.s_addr = sceNetHtonl( destination.GetAddress() );
-      address.sin_port = sceNetHtons( destination.GetPort() );
+      struct sockaddr_in address;
+      address.sin_family = AF_INET;
+      address.sin_addr.s_addr = htonl( destination.GetAddress() );
+      address.sin_port = htons( destination.GetPort() );
 
-      int sent_bytes = sceNetSendto( socketHandle, (const char*)data, size, 0, (SceNetSockaddr*)&address, sizeof(address) );
+      int sent_bytes = sendto( socketHandle, (const char*)data, size, 0, (struct sockaddr*)&address, sizeof(address) );
 
       return sent_bytes == size;
     }
@@ -241,21 +325,21 @@ namespace net
       if ( socketHandle < 0 )
         return 0;
 
-      SceNetSockaddrIn from;
+      struct sockaddr_in from;
       unsigned int fromLength = sizeof( from );
 
-      int received_bytes = sceNetRecvfrom(
+      int received_bytes = recvfrom(
         socketHandle,
         (char*)data,
         size, 0,
-        (SceNetSockaddr*)&from,
+        (struct sockaddr*)&from,
         &fromLength );
 
       if ( received_bytes <= 0 )
         return 0;
 
-      unsigned int address = sceNetNtohl( from.sin_addr.s_addr );
-      unsigned short port = sceNetNtohs( from.sin_port );
+      unsigned int address = ntohl( from.sin_addr.s_addr );
+      unsigned short port = ntohs( from.sin_port );
 
       sender = Address( address, port );
 
@@ -298,10 +382,10 @@ namespace net
     {
       if ( !running )
       {
-        SCE_DBG_LOG_INFO( "NETWORK: Opening connection on port %d...", port );
+        log_message( "NETWORK: Opening connection on port ", std::to_string(port), "...\n" );
         if ( !socket.Open( port ) )
         {
-          SCE_DBG_LOG_ERROR( "NETWORK: Could not start connection on port %d", port );
+          log_message( "NETWORK: Could not start connection on port ", std::to_string(port), "\n" );
           return false;
         }
         running = true;
@@ -316,7 +400,7 @@ namespace net
     {
       if ( running )
       {
-        SCE_DBG_LOG_INFO( "NETWORK: Ceasing connection" );
+        log_message( "NETWORK: Ceasing connection\n" );
 
         bool connected = IsConnected();
         ClearData();
@@ -335,7 +419,7 @@ namespace net
 
     void Listen()
     {
-      SCE_DBG_LOG_INFO( "NETWORK: Server is listening for connections..." );
+      log_message( "NETWORK: Server is listening for connections...\n" );
       bool connected = IsConnected();
       ClearData();
       if ( connected )
@@ -346,7 +430,7 @@ namespace net
 
     void Connect( const Address & address )
     {
-      SCE_DBG_LOG_INFO( "NETWORK: Client is connecting to %s...", address.ToString().c_str() );
+      log_message( "NETWORK: Client is connecting to ", address.ToString(), "...\n" );
 
       bool connected = IsConnected();
       ClearData();
@@ -400,14 +484,14 @@ namespace net
       {
         if ( state == Connecting )
         {
-          SCE_DBG_LOG_ERROR( "NETWORK: Connection failed!" );
+          log_message( "NETWORK: Connection failed!\n" );
           ClearData();
           state = ConnectFail;
           OnDisconnect();
         }
         else if ( state == Connected )
         {
-          SCE_DBG_LOG_ERROR( "NETWORK: Connection timed out!" );
+          log_message( "NETWORK: Connection timed out!\n" );
           ClearData();
           if ( state == Connecting )
             state = ConnectTimeout;
@@ -459,7 +543,7 @@ namespace net
       {
         state = Connected;
         address = sender;
-        SCE_DBG_LOG_INFO( "NETWORK: New client connected from %s", address.ToString().c_str() );
+        log_message( "NETWORK: New client connected from ", address.ToString(), "\n" );
         OnConnect();
       }
 
@@ -467,7 +551,7 @@ namespace net
       {
         if ( mode == Client && state == Connecting )
         {
-          SCE_DBG_LOG_INFO( "NETWORK: Successfully connected to server!" );
+          log_message( "NETWORK: Successfully connected to server!\n" );
           state = Connected;
           OnConnect();
         }
@@ -622,10 +706,10 @@ namespace net
     {
       if ( sent_queue.exists( local_sequence ) )
       {
-        SCE_DBG_LOG_ERROR( "NETWORK: local sequence %d exists", local_sequence );
+        log_message( "NETWORK: local sequence ", std::to_string(local_sequence), " exists\n" );
         for ( PacketQueue::iterator itor = sent_queue.begin(); itor != sent_queue.end(); ++itor )
         {
-          SCE_DBG_LOG_ERROR( "NETWORK: + %d", itor->sequence );
+          log_message( "NETWORK: + ", std::to_string(itor->sequence), "\n" );
         }
       }
       assert( !sent_queue.exists( local_sequence ) );
@@ -690,7 +774,10 @@ namespace net
 
     static int bit_index_for_sequence( unsigned int sequence, unsigned int ack, unsigned int max_sequence )
     {
-      assert( sequence != ack );
+      // If sequence equals ack, return -1 to indicate no bit should be set
+      if ( sequence == ack )
+        return -1;
+        
       if ( sequence_more_recent( sequence, ack, max_sequence ) )
       {
         if ( sequence > ack )
@@ -715,7 +802,7 @@ namespace net
         if ( itor->sequence == ack || sequence_more_recent( itor->sequence, ack, max_sequence ) )
         {
           int bit_index = bit_index_for_sequence( itor->sequence, ack, max_sequence );
-          if ( bit_index <= 31 )
+          if ( bit_index >= 0 && bit_index <= 31 )
             ack_bits |= 1 << bit_index;
         }
       }
@@ -742,7 +829,7 @@ namespace net
         else if ( sequence_more_recent( itor->sequence, ack, max_sequence ) )
         {
           int bit_index = bit_index_for_sequence( itor->sequence, ack, max_sequence );
-          if ( bit_index <= 31 )
+          if ( bit_index >= 0 && bit_index <= 31 )
           {
             if ( ack_bits & ( 1 << bit_index ) )
               acked = true;
@@ -1040,7 +1127,7 @@ namespace net
   public:
     FlowControl()
     {
-      SCE_DBG_LOG_INFO( "NETWORK: Flow control initialized!" );
+      log_message( "NETWORK: Flow control initialized!\n" );
       Reset();
     }
 
@@ -1060,7 +1147,7 @@ namespace net
       {
         if ( rtt > RTT_Threshold )
         {
-          SCE_DBG_LOG_INFO( "NETWORK: Dropping to bad mode!" );
+          log_message( "NETWORK: Dropping to bad mode!\n" );
           mode = Bad;
           if ( good_conditions_time < 10.0f && penalty_time < 60.0f )
           {
@@ -1068,7 +1155,7 @@ namespace net
             if ( penalty_time > 60.0f )
               penalty_time = 60.0f;
 
-            SCE_DBG_LOG_INFO( "NETWORK: Penalty time increased to %.1f seconds", penalty_time );
+            log_message( "NETWORK: Penalty time increased to ", std::to_string(penalty_time), " seconds\n" );
           }
           good_conditions_time = 0.0f;
           penalty_reduction_accumulator = 0.0f;
@@ -1084,7 +1171,7 @@ namespace net
           if ( penalty_time < 1.0f )
             penalty_time = 1.0f;
 
-          SCE_DBG_LOG_INFO( "NETWORK: Penalty time reduced to %.1f seconds", penalty_time );
+          log_message( "NETWORK: Penalty time reduced to ", std::to_string(penalty_time), " seconds\n" );
           penalty_reduction_accumulator = 0.0f;
         }
       }
@@ -1098,7 +1185,7 @@ namespace net
 
         if ( good_conditions_time > penalty_time )
         {
-          SCE_DBG_LOG_INFO( "NETWORK: Upgrading to good mode" );
+          log_message( "NETWORK: Upgrading to good mode\n" );
           good_conditions_time = 0.0f;
           penalty_reduction_accumulator = 0.0f;
           mode = Good;

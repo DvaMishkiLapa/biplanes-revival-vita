@@ -48,6 +48,7 @@
   #include <emscripten/html5.h>
 #elif defined(VITA_PLATFORM)
   #include <include/matchmake.hpp>
+  #include <lib/Net-vita.h>
 #else
   #include <include/matchmake.hpp>
   #include <lib/Net.h>
@@ -59,8 +60,8 @@
 using TimeUtils::Duration;
 
 
-const uint16_t DEFAULT_LOCAL_PORT   = 55555;
-const uint16_t DEFAULT_REMOTE_PORT  = 55555;
+const uint16_t DEFAULT_LOCAL_PORT   = 1337;
+const uint16_t DEFAULT_REMOTE_PORT  = 1337;
 const std::string DEFAULT_SERVER_IP = "127.0.0.1";
 
 //  Incompatible game versions must have different prefix

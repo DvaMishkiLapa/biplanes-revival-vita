@@ -37,6 +37,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <psp2/libdbg.h>
 #endif
 
 #define CONFIG_FILENAME BIPLANES_EXE_NAME ".conf"
@@ -546,6 +547,11 @@ log_message(
       logFile << fullMessage;
 
   }
+
+#ifdef VITA_PLATFORM
+  // Also log to VitaSDK debug output
+  SCE_DBG_LOG_INFO("%s", fullMessage.c_str());
+#endif
 }
 
 

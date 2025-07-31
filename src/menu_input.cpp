@@ -190,6 +190,28 @@ Menu::ToggleTyping(
   if ( mIsTyping == true )
     return EndTyping(varToSpecify);
 
+#ifdef VITA_PLATFORM
+  // For PS Vita, we need to handle text input differently
+  // Clear the current input field and prepare for new input
+  switch (varToSpecify)
+  {
+    case MENU_SPECIFY::IP:
+      mInputIp.clear();
+      break;
+    case MENU_SPECIFY::PORT:
+      if ( mCurrentRoom == ROOMS::MENU_MP_DC_HOST )
+        mInputPortHost.clear();
+      else
+        mInputPortClient.clear();
+      break;
+    case MENU_SPECIFY::PASSWORD:
+      mInputPassword.clear();
+      break;
+    default:
+      break;
+  }
+#endif
+
   mIsTyping = true;
   mSpecifyingVarState[varToSpecify] = true;
   SDL_StartTextInput();
@@ -269,6 +291,26 @@ Menu::UpdateTyping()
 
   if ( mSpecifyingVarState[MENU_SPECIFY::IP] == true )
   {
+#ifdef VITA_PLATFORM
+    // On PS Vita, handle text input more carefully
+    if ( windowEvent.type == SDL_TEXTINPUT )
+    {
+      // Clear the field first if it's empty (to avoid appending to old content)
+      if ( mInputIp.empty() )
+      {
+        mInputIp.clear();
+      }
+      
+      if ( mInputIp.length() < maxInputFieldTextLength )
+      {
+        for ( const auto& digit : windowEvent.text.text )
+          if ( std::isdigit(digit) == true || digit == '.' )
+            mInputIp += digit;
+          else
+            break;
+      }
+    }
+#else
     if ( windowEvent.type == SDL_KEYDOWN )
     {
       if ( windowEvent.key.keysym.sym == SDLK_BACKSPACE && mInputIp.length() > 0 )
@@ -293,6 +335,7 @@ Menu::UpdateTyping()
             break;
       }
     }
+#endif
 
     return;
   }
@@ -306,6 +349,26 @@ Menu::UpdateTyping()
     else
       inputPort = mInputPortClient;
 
+#ifdef VITA_PLATFORM
+    // On PS Vita, handle text input more carefully
+    if ( windowEvent.type == SDL_TEXTINPUT )
+    {
+      // Clear the field first if it's empty (to avoid appending to old content)
+      if ( inputPort.empty() )
+      {
+        inputPort.clear();
+      }
+      
+      if ( inputPort.length() < 5 )
+      {
+        for ( const auto& digit : windowEvent.text.text )
+          if ( std::isdigit(digit) == true )
+            inputPort += digit;
+          else
+            break;
+      }
+    }
+#else
     if ( windowEvent.type == SDL_KEYDOWN )
     {
       if ( windowEvent.key.keysym.sym == SDLK_BACKSPACE && inputPort.length() > 0 )
@@ -330,6 +393,7 @@ Menu::UpdateTyping()
             break;
       }
     }
+#endif
 
     if ( mCurrentRoom == ROOMS::MENU_MP_DC_HOST )
       mInputPortHost = inputPort;

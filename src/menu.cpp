@@ -374,7 +374,12 @@ Menu::DrawMenu()
 
     case ROOMS::MENU_MP_HOTSEAT:
     {
+#if !defined(VITA_PLATFORM)
       screen_mp_hotseat();
+#else
+      // Redirect to main menu on PS Vita
+      ChangeRoom(ROOMS::MENU_MAIN);
+#endif
       break;
     }
 

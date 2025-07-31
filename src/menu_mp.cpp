@@ -62,9 +62,12 @@ Menu::screen_mp()
 #endif
     case MENU_MP::HOTSEAT:
     {
+#if defined(VITA_PLATFORM)
+      draw_text( "Not available on PS Vita :(", 0.005f, 0.65f );
+#else
       draw_text( "   You'd better connect      ", 0.005f, 0.65f );
       draw_text( "       a second keyboard!    ", 0.005f, 0.7f );
-
+#endif
       break;
     }
 

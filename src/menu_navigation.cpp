@@ -238,8 +238,10 @@ Menu::Select()
 
         case MENU_MP::HOTSEAT:
         {
+#if !defined(VITA_PLATFORM)
           gameState().gameMode = GAME_MODE::HUMAN_VS_HUMAN_HOTSEAT;
           ChangeRoom(ROOMS::MENU_MP_HOTSEAT);
+#endif
           break;
         }
 

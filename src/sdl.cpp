@@ -65,7 +65,7 @@ SDL_init(
 #ifdef VITA_PLATFORM
   // Initialize gamepad subsystem for Vita
   log_message( "SDL Startup: Initializing gamepad subsystem..." );
-  
+
   if ( SDL_InitSubSystem( SDL_INIT_GAMECONTROLLER ) != 0 )
   {
     log_message( "\nSDL Startup: SDL gamepad subsystem failed to initialize! SDL Error: ", SDL_GetError(), "\n" );

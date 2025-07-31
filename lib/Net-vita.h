@@ -98,10 +98,10 @@ namespace net
     {
       std::stringstream stream;
       stream << GetA() << "." << GetB() << "." << GetC() << "." << GetD();
-      
+
       if ( includePort )
         stream << ":" << port;
-      
+
       return stream.str();
     }
 
@@ -160,7 +160,7 @@ namespace net
     if (port >= 1 && port <= 1023) return false;
     if (port >= 9293 && port <= 9308) return false;
     if (port >= 40000 && port <= 65535) return false;
-    
+
     // Available ranges: 1024-9292, 9309-39999
     return true;
   }
@@ -169,7 +169,7 @@ namespace net
   inline uint16_t findAvailablePort(uint16_t startPort = 8080)
   {
     uint16_t port = startPort;
-    
+
     // Try ports in safe ranges
     for (int attempt = 0; attempt < 100; attempt++) // Limit attempts
     {
@@ -178,14 +178,14 @@ namespace net
         log_message( "NETWORK: Found available port: ", std::to_string(port), "\n" );
         return port;
       }
-      
+
       port++;
-      
+
       // Skip reserved ranges
       if (port == 9293) port = 9309;
       if (port == 40000) port = 1024; // Wrap around to safe range
     }
-    
+
     log_message( "NETWORK: Could not find available port, using default: 8080\n" );
     return 8080; // Fallback
   }
@@ -238,12 +238,12 @@ namespace net
       address.sin_port = htons( port );
 
       log_message( "NETWORK: Attempting to bind socket to port ", std::to_string(port), "\n" );
-      
+
       int bindResult = bind( socketHandle, (struct sockaddr*)&address, sizeof(address) );
       if ( bindResult < 0 )
       {
         log_message( "NETWORK: Failed to bind a socket! Error code: ", std::to_string(bindResult) + " (errno: " + std::to_string(errno) + ")\n" );
-        
+
         // Try to get error description
         switch(errno) {
           case EADDRINUSE:
@@ -259,7 +259,7 @@ namespace net
             log_message( "NETWORK: Error: Unknown error\n" );
             break;
         }
-        
+
         Close();
         return false;
       }
@@ -269,7 +269,7 @@ namespace net
       // set non-blocking io
       int nonBlocking = 1;
       log_message( "NETWORK: Setting socket to non-blocking mode\n" );
-      
+
       int setoptResult = setsockopt( socketHandle, SOL_SOCKET, SO_NONBLOCK, &nonBlocking, sizeof(nonBlocking) );
       if ( setoptResult < 0 )
       {
@@ -777,7 +777,7 @@ namespace net
       // If sequence equals ack, return -1 to indicate no bit should be set
       if ( sequence == ack )
         return -1;
-        
+
       if ( sequence_more_recent( sequence, ack, max_sequence ) )
       {
         if ( sequence > ack )

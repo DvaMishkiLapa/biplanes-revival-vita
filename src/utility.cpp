@@ -787,11 +787,11 @@ checkPort(
   if (portNum >= 1 && portNum <= 1023) return false;
   if (portNum >= 9293 && portNum <= 9308) return false;
   if (portNum >= 40000 && portNum <= 65535) return false;
-  
+
   // Available ranges: 1024-9292, 9309-39999
   if (portNum >= 1024 && portNum <= 9292) return true;
   if (portNum >= 9309 && portNum <= 39999) return true;
-  
+
   return false;
 #else
   // Standard port validation for other platforms

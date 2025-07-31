@@ -300,7 +300,7 @@ Menu::UpdateTyping()
       {
         mInputIp.clear();
       }
-      
+
       if ( mInputIp.length() < maxInputFieldTextLength )
       {
         for ( const auto& digit : windowEvent.text.text )
@@ -358,7 +358,7 @@ Menu::UpdateTyping()
       {
         inputPort.clear();
       }
-      
+
       if ( inputPort.length() < 5 )
       {
         for ( const auto& digit : windowEvent.text.text )

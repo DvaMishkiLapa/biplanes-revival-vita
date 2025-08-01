@@ -28,9 +28,11 @@ recreated for PC (originally developed by Morpheme Ltd. in 2004).
 - VitaDB (soon);
 - From this repository's [Releases page](https://github.com/DvaMishkiLapa/biplanes-revival-vita/releases);
 
-Custom soundpacks are available
-on our [website](https://regular-dev.org/biplanes-revival)
-and on our [itch.io page](https://regular-dev.itch.io/biplanes-revival)
+Custom soundpacks and assets are available
+on [regular-dev website](https://regular-dev.org/biplanes-revival)
+and on [regular-dev itch.io page](https://regular-dev.itch.io/biplanes-revival)
+
+**Don't forget to upload the assets to the folder `ux0:/data/biplanes_revival`!**
 
 ## Features
 
@@ -69,7 +71,7 @@ You can replace the files in the `assets` folder in the `.vpk` file.
   cmake --build build
   ```
 
-Then, install the generated `./build/BiplanesRevival.vpk` file on your PS Vita.
+Then, install `./build/BiplanesRevival.vpk` file on your PS Vita.
 
 ## Thanks and Credits
 

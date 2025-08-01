@@ -480,52 +480,41 @@ Menu::UpdateSliderEditing()
 
   if ( mSpecifyingVarState[MENU_SPECIFY::WIN_SCORE] == true )
     sliderValue = &gameState().winScore;
-
   else if ( mSpecifyingVarState[MENU_SPECIFY::AUDIO_VOLUME] == true )
     sliderValue = &gameState().audioVolume;
-
   else if ( mSpecifyingVarState[MENU_SPECIFY::STEREO_DEPTH] == true )
     sliderValue = &gameState().stereoDepth;
-
 
   if ( sliderValue == nullptr )
     return;
 
-
   const uint8_t maxSliderValue = 100;
+  const uint8_t minSliderValue = mSpecifyingVarState[MENU_SPECIFY::WIN_SCORE] ? 1 : 0;
 
-
-  if ( isUniversalKeyPressed(SDL_SCANCODE_LEFT) == true ||
-       isUniversalKeyPressed(SDL_SCANCODE_A) == true )
+#ifdef VITA_PLATFORM
+  // Simple single-press logic like menu navigation
+  if ( isButtonPressed(SDL_CONTROLLER_BUTTON_DPAD_LEFT) )
   {
-    if ( *sliderValue >= 10 )
-      *sliderValue -= 10;
-    else
-      *sliderValue = 0;
-  }
-
-  else if ( isUniversalKeyPressed(SDL_SCANCODE_DOWN) == true ||
-            isUniversalKeyPressed(SDL_SCANCODE_S) == true )
-  {
-    if ( *sliderValue > 0 )
+    if ( *sliderValue > minSliderValue )
       --*sliderValue;
   }
-
-  else if ( isUniversalKeyPressed(SDL_SCANCODE_RIGHT) == true ||
-            isUniversalKeyPressed(SDL_SCANCODE_D) == true )
-  {
-    if ( *sliderValue < maxSliderValue - 10 )
-      *sliderValue += 10;
-    else
-      *sliderValue = maxSliderValue;
-  }
-
-  else if ( isUniversalKeyPressed(SDL_SCANCODE_UP) == true ||
-            isUniversalKeyPressed(SDL_SCANCODE_W) == true )
+  else if ( isButtonPressed(SDL_CONTROLLER_BUTTON_DPAD_RIGHT) )
   {
     if ( *sliderValue < maxSliderValue )
       ++*sliderValue;
   }
+#else
+  if ( isUniversalKeyPressed(SDL_SCANCODE_LEFT) || isUniversalKeyPressed(SDL_SCANCODE_A) )
+  {
+    if ( *sliderValue > minSliderValue )
+      --*sliderValue;
+  }
+  else if ( isUniversalKeyPressed(SDL_SCANCODE_RIGHT) || isUniversalKeyPressed(SDL_SCANCODE_D) )
+  {
+    if ( *sliderValue < maxSliderValue )
+      ++*sliderValue;
+  }
+#endif
 }
 
 void

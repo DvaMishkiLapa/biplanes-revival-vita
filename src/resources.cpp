@@ -35,7 +35,9 @@
 static std::string
 get_assets_root()
 {
-#if defined(_WIN32) || defined(__APPLE__) || defined(__MACH__)
+#ifdef VITA_PLATFORM
+  return getVitaDataPath() + "/" + ASSETS_DIRNAME;
+#elif defined(_WIN32) || defined(__APPLE__) || defined(__MACH__)
   return ASSETS_DIRNAME;
 #endif
 

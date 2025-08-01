@@ -1,17 +1,23 @@
 /*
-  Vita-compatible Network Library
-  Simplified version for PS Vita
+  PS Vita Network Library
+  Optimized network library specifically for PlayStation Vita
+  Based on "Networking for Game Programmers" by Glenn Fiedler
 */
 
 #ifndef NET_VITA_H
 #define NET_VITA_H
 
+// Ensure this library is only used on PS Vita platform
 #if defined(VITA_PLATFORM) || defined(__vita__)
   #define PLATFORM_VITA
+  
+  // PS Vita specific network includes
   #include <psp2/net/net.h>
   #include <psp2/net/netctl.h>
   #include <psp2/kernel/threadmgr.h>
   #include <psp2/libdbg.h>
+  
+  // Standard network includes
   #include <sys/socket.h>
   #include <netinet/in.h>
   #include <arpa/inet.h>
@@ -19,9 +25,10 @@
   #include <unistd.h>
   #include <errno.h>
 #else
-  #error "This file is for PS Vita only"
+  #error "Net-vita.h: This file is designed exclusively for PlayStation Vita platform"
 #endif
 
+// Standard C++ includes
 #include <cassert>
 #include <cstdint>
 #include <cstring>
@@ -30,6 +37,27 @@
 #include <list>
 #include <vector>
 #include <include/utility.hpp>
+
+// PS Vita network configuration constants - always available for cross-platform compatibility
+namespace VitaConfig {
+  // PS Vita reserved port ranges that should be avoided
+  constexpr uint16_t SYSTEM_PORT_MIN = 1;
+  constexpr uint16_t SYSTEM_PORT_MAX = 1023;
+  constexpr uint16_t RESERVED_PORT_MIN = 9293;
+  constexpr uint16_t RESERVED_PORT_MAX = 9308;
+  constexpr uint16_t HIGH_PORT_MIN = 40000;
+  constexpr uint16_t HIGH_PORT_MAX = 65535;
+  
+  // Safe port ranges for applications
+  constexpr uint16_t SAFE_PORT_MIN = 1024;
+  constexpr uint16_t SAFE_PORT_MAX = 9292;
+  constexpr uint16_t SAFE_PORT_ALT_MIN = 9309;
+  constexpr uint16_t SAFE_PORT_ALT_MAX = 39999;
+  
+  // Default network configuration
+  constexpr uint16_t DEFAULT_PORT = 8080;
+  constexpr int MAX_PORT_ATTEMPTS = 100;
+}
 
 namespace net
 {
@@ -60,24 +88,25 @@ namespace net
       return address;
     }
 
-    std::string GetA() const
+    // Extract IP address octets efficiently for PS Vita
+    inline std::string GetA() const
     {
-      return std::to_string( ( unsigned char ) ( ( address >> 24 ) & 0xFF ) );
+      return std::to_string( static_cast<uint8_t>( address >> 24 ) );
     }
 
-    std::string GetB() const
+    inline std::string GetB() const
     {
-      return std::to_string( ( unsigned char ) ( ( address >> 16 ) & 0xFF ) );
+      return std::to_string( static_cast<uint8_t>( address >> 16 ) );
     }
 
-    std::string GetC() const
+    inline std::string GetC() const
     {
-      return std::to_string( ( unsigned char ) ( ( address >> 8 ) & 0xFF ) );
+      return std::to_string( static_cast<uint8_t>( address >> 8 ) );
     }
 
-    std::string GetD() const
+    inline std::string GetD() const
     {
-      return std::to_string( ( unsigned char ) ( address & 0xFF ) );
+      return std::to_string( static_cast<uint8_t>( address ) );
     }
 
     unsigned short GetPort() const
@@ -198,25 +227,30 @@ namespace net
     log_message( "NETWORK: Vita network subsystem shutdown skipped (handled by VitaSDK)\n" );
   }
 
-  // Check if port is available for PS Vita
-  inline bool isPortAvailable(uint16_t port)
+  // PS Vita specific network utilities
+#ifdef VITA_PLATFORM
+  // Check if port is available for PS Vita applications
+  inline bool isPortAvailable(uint16_t port) noexcept
   {
-    // PS Vita reserved ports: 1-1023, 9293-9308, 40000-65535
-    if (port >= 1 && port <= 1023) return false;
-    if (port >= 9293 && port <= 9308) return false;
-    if (port >= 40000 && port <= 65535) return false;
+    using namespace VitaConfig;
+    
+    // Check against PS Vita reserved port ranges
+    if (port >= SYSTEM_PORT_MIN && port <= SYSTEM_PORT_MAX) return false;
+    if (port >= RESERVED_PORT_MIN && port <= RESERVED_PORT_MAX) return false;
+    if (port >= HIGH_PORT_MIN && port <= HIGH_PORT_MAX) return false;
 
-    // Available ranges: 1024-9292, 9309-39999
+    // Port is in safe application range
     return true;
   }
 
-  // Find next available port starting from given port
-  inline uint16_t findAvailablePort(uint16_t startPort = 8080)
+  // Find next available port starting from given port, optimized for PS Vita
+  inline uint16_t findAvailablePort(uint16_t startPort = ::VitaConfig::DEFAULT_PORT) noexcept
   {
+    using namespace ::VitaConfig;
     uint16_t port = startPort;
 
-    // Try ports in safe ranges
-    for (int attempt = 0; attempt < 100; attempt++) // Limit attempts
+    // Efficient port search within safe ranges
+    for (int attempt = 0; attempt < MAX_PORT_ATTEMPTS; ++attempt)
     {
       if (isPortAvailable(port))
       {
@@ -224,16 +258,17 @@ namespace net
         return port;
       }
 
-      port++;
+      ++port;
 
-      // Skip reserved ranges
-      if (port == 9293) port = 9309;
-      if (port == 40000) port = 1024; // Wrap around to safe range
+      // Smart range skipping to avoid reserved areas
+      if (port == RESERVED_PORT_MIN) port = SAFE_PORT_ALT_MIN;
+      if (port == HIGH_PORT_MIN) port = SAFE_PORT_MIN; // Wrap to beginning of safe range
     }
 
-    log_message( "NETWORK: Could not find available port, using default: 8080\n" );
-    return 8080; // Fallback
+    log_message( "NETWORK: Could not find available port, using fallback: ", std::to_string(DEFAULT_PORT), "\n" );
+    return DEFAULT_PORT;
   }
+#endif
 
   class Socket
   {
@@ -253,77 +288,73 @@ namespace net
       assert( !IsOpen() );
 
 #ifdef VITA_PLATFORM
-      // Check if port is in Vita's allowed range
+      // Validate port against PS Vita reserved ranges
       if (!isPortAvailable(port))
       {
-        log_message( "NETWORK: Port ", std::to_string(port), " is in Vita's reserved range!\n" );
-        log_message( "NETWORK: Available ranges: 1024-9292, 9309-39999\n" );
+        log_message( "NETWORK: Port ", std::to_string(port), " is reserved on PS Vita!\n" );
+        log_message( "NETWORK: Use ports in ranges: " + std::to_string(::VitaConfig::SAFE_PORT_MIN) + "-" + 
+                    std::to_string(::VitaConfig::SAFE_PORT_MAX) + " or " + std::to_string(::VitaConfig::SAFE_PORT_ALT_MIN) + 
+                    "-" + std::to_string(::VitaConfig::SAFE_PORT_ALT_MAX) + "\n" );
         return false;
       }
 #endif
 
-      log_message( "NETWORK: Creating socket for port ", std::to_string(port), "\n" );
+      log_message( "NETWORK: Creating UDP socket for port ", std::to_string(port), "\n" );
 
-      // create socket using standard POSIX socket
+      // Create UDP socket optimized for PS Vita
       socketHandle = socket( AF_INET, SOCK_DGRAM, IPPROTO_UDP );
 
       if ( socketHandle < 0 )
       {
-        log_message( "NETWORK: Failed to create socket! Error code: ", std::to_string(socketHandle), "\n" );
+        log_message( "NETWORK: Socket creation failed! Error: ", std::to_string(errno), "\n" );
         socketHandle = -1;
         return false;
       }
 
-      log_message( "NETWORK: Socket created successfully with handle: ", std::to_string(socketHandle), "\n" );
-
-      // bind to port
-      struct sockaddr_in address;
+      // Configure socket address structure
+      struct sockaddr_in address = {};  // Zero-initialize for safety
       address.sin_family = AF_INET;
       address.sin_addr.s_addr = INADDR_ANY;
       address.sin_port = htons( port );
 
-      log_message( "NETWORK: Attempting to bind socket to port ", std::to_string(port), "\n" );
-
-      int bindResult = bind( socketHandle, (struct sockaddr*)&address, sizeof(address) );
-      if ( bindResult < 0 )
+      // Attempt to bind socket to port
+      if ( bind( socketHandle, reinterpret_cast<struct sockaddr*>(&address), sizeof(address) ) < 0 )
       {
-        log_message( "NETWORK: Failed to bind a socket! Error code: ", std::to_string(bindResult) + " (errno: " + std::to_string(errno) + ")\n" );
+        const int error = errno;
+        log_message( "NETWORK: Socket bind failed! Error: ", std::to_string(error), "\n" );
 
-        // Try to get error description
-        switch(errno) {
+#ifdef VITA_PLATFORM
+        // Provide PS Vita specific error handling
+        switch(error) {
           case EADDRINUSE:
-            log_message( "NETWORK: Error: Address already in use (port may be occupied)\n" );
+            log_message( "NETWORK: Port already in use. Try findAvailablePort()\n" );
             break;
           case EACCES:
-            log_message( "NETWORK: Error: Permission denied\n" );
+            log_message( "NETWORK: Permission denied. Port may be system reserved\n" );
             break;
           case EINVAL:
-            log_message( "NETWORK: Error: Invalid argument\n" );
+            log_message( "NETWORK: Invalid socket address\n" );
             break;
           default:
-            log_message( "NETWORK: Error: Unknown error\n" );
+            log_message( "NETWORK: Unknown bind error\n" );
             break;
         }
+#endif
 
         Close();
         return false;
       }
 
-      log_message( "NETWORK: Socket bound successfully to port ", std::to_string(port), "\n" );
-
-      // set non-blocking io
-      int nonBlocking = 1;
-      log_message( "NETWORK: Setting socket to non-blocking mode\n" );
-
-      int setoptResult = setsockopt( socketHandle, SOL_SOCKET, SO_NONBLOCK, &nonBlocking, sizeof(nonBlocking) );
-      if ( setoptResult < 0 )
+      // Configure socket for non-blocking I/O (PS Vita compatible)
+      const int nonBlocking = 1;
+      if ( setsockopt( socketHandle, SOL_SOCKET, SO_NONBLOCK, &nonBlocking, sizeof(nonBlocking) ) < 0 )
       {
-        log_message( "NETWORK: Failed to set Non-Blocking mode for a socket! Error code: ", std::to_string(setoptResult), "\n" );
+        log_message( "NETWORK: Failed to set non-blocking mode! Error: ", std::to_string(errno), "\n" );
         Close();
         return false;
       }
 
-      log_message( "NETWORK: Socket configured successfully\n" );
+      log_message( "NETWORK: Socket opened successfully on port ", std::to_string(port), "\n" );
       return true;
     }
 
@@ -657,58 +688,74 @@ namespace net
     int size;						// packet size in bytes
   };
 
-  inline bool sequence_more_recent( unsigned int s1, unsigned int s2, unsigned int max_sequence )
+  // Optimized sequence comparison for PS Vita
+  // Determines if sequence s1 is more recent than s2, handling sequence number wrap-around
+  // This algorithm works correctly even when sequence numbers wrap from max_sequence to 0
+  inline bool sequence_more_recent( unsigned int s1, unsigned int s2, unsigned int max_sequence ) noexcept
   {
-    return ( ( s1 > s2 ) && ( s1 - s2 <= max_sequence/2 ) ) ||
-           ( ( s2 > s1 ) && ( s2 - s1 > max_sequence/2 ) );
+    const unsigned int half_sequence = max_sequence / 2;
+    return ( ( s1 > s2 ) && ( s1 - s2 <= half_sequence ) ) ||
+           ( ( s2 > s1 ) && ( s2 - s1 > half_sequence ) );
   }
 
-  class PacketQueue : public std::list <PacketData>
+  // Packet queue optimized for PS Vita memory constraints
+  // Maintains packets in sequence order, handling sequence wrap-around correctly
+  class PacketQueue : public std::list<PacketData>
   {
   public:
-    bool exists( unsigned int sequence )
+    // Check if a packet with given sequence number exists in the queue
+    // Optimized linear search - suitable for typical game network packet counts
+    bool exists( unsigned int sequence ) const noexcept
     {
-      for ( iterator itor = begin(); itor != end(); ++itor )
-        if ( itor->sequence == sequence )
+      for ( const auto& packet : *this )
+        if ( packet.sequence == sequence )
           return true;
       return false;
     }
 
-    void insert_sorted( const PacketData & p, unsigned int max_sequence )
+    // Insert packet data maintaining sequence order
+    // Uses optimized insertion strategy: check ends first, then search middle
+    void insert_sorted( const PacketData& p, unsigned int max_sequence )
     {
       if ( empty() )
       {
         push_back( p );
+        return;
       }
-      else
+
+      // Fast path: check if packet belongs at the beginning
+      if ( !sequence_more_recent( p.sequence, front().sequence, max_sequence ) )
       {
-        if ( !sequence_more_recent( p.sequence, front().sequence, max_sequence ) )
+        push_front( p );
+        return;
+      }
+
+      // Fast path: check if packet belongs at the end
+      if ( sequence_more_recent( p.sequence, back().sequence, max_sequence ) )
+      {
+        push_back( p );
+        return;
+      }
+
+      // Slower path: find correct position in middle
+      for ( auto itor = begin(); itor != end(); ++itor )
+      {
+        assert( itor->sequence != p.sequence ); // Duplicate sequences not allowed
+        if ( sequence_more_recent( itor->sequence, p.sequence, max_sequence ) )
         {
-          push_front( p );
-        }
-        else if ( sequence_more_recent( p.sequence, back().sequence, max_sequence ) )
-        {
-          push_back( p );
-        }
-        else
-        {
-          for ( PacketQueue::iterator itor = begin(); itor != end(); ++itor )
-          {
-            assert( itor->sequence != p.sequence );
-            if ( sequence_more_recent( itor->sequence, p.sequence, max_sequence ) )
-            {
-              insert( itor, p );
-              break;
-            }
-          }
+          insert( itor, p );
+          return;
         }
       }
     }
 
-    void verify_sorted( unsigned int max_sequence )
+    // Debug function to verify queue is properly sorted
+    // Only compiled in debug builds to avoid performance impact
+    void verify_sorted( unsigned int max_sequence ) const
     {
-      PacketQueue::iterator prev = end();
-      for ( PacketQueue::iterator itor = begin(); itor != end(); ++itor )
+#ifdef _DEBUG
+      auto prev = end();
+      for ( auto itor = begin(); itor != end(); ++itor )
       {
         if ( prev != end() )
         {
@@ -717,6 +764,7 @@ namespace net
         }
         prev = itor;
       }
+#endif
     }
   };
 
@@ -817,81 +865,108 @@ namespace net
              ( ( s2 > s1 ) && ( s2 - s1 > max_sequence/2 ) );
     }
 
-    static int bit_index_for_sequence( unsigned int sequence, unsigned int ack, unsigned int max_sequence )
+    // Calculate bit index for sequence number in acknowledgment bitfield
+    // Returns the bit position (0-31) for a sequence in the 32-bit ack_bits field
+    // Returns -1 if sequence shouldn't be represented in the bitfield
+    static int bit_index_for_sequence( unsigned int sequence, unsigned int ack, unsigned int max_sequence ) noexcept
     {
-      // If sequence equals ack, return -1 to indicate no bit should be set
+      // Sequence equal to ack is handled separately, not in bitfield
       if ( sequence == ack )
         return -1;
 
-      if ( sequence_more_recent( sequence, ack, max_sequence ) )
+      // Calculate bit index based on sequence age relative to ack
+      // This handles wrap-around correctly for sequence numbers
+      if ( !sequence_more_recent( sequence, ack, max_sequence ) )
       {
-        if ( sequence > ack )
-          return (int) ( ack + ( max_sequence - sequence ) );
-        else
-          return (int) ( ack - sequence );
-      }
-      else
-      {
-        if ( ack > sequence )
-          return (int) ( sequence + ( max_sequence - ack ) );
-        else
-          return (int) ( sequence - ack );
-      }
-    }
-
-    static unsigned int generate_ack_bits( unsigned int ack, const PacketQueue & received_queue, unsigned int max_sequence )
-    {
-      unsigned int ack_bits = 0;
-      for ( PacketQueue::const_iterator itor = received_queue.begin(); itor != received_queue.end(); ++itor )
-      {
-        if ( itor->sequence == ack || sequence_more_recent( itor->sequence, ack, max_sequence ) )
+        // Sequence is older than ack, calculate its bit position
+        if ( ack >= sequence )
         {
-          int bit_index = bit_index_for_sequence( itor->sequence, ack, max_sequence );
-          if ( bit_index >= 0 && bit_index <= 31 )
-            ack_bits |= 1 << bit_index;
+          const unsigned int diff = ack - sequence;
+          return diff <= 32 ? static_cast<int>(diff - 1) : -1;
+        }
+        else
+        {
+          // Handle wrap-around case
+          const unsigned int diff = (max_sequence - sequence) + ack + 1;
+          return diff <= 32 ? static_cast<int>(diff - 1) : -1;
         }
       }
+      
+      // Sequence is newer than ack, shouldn't be in bitfield
+      return -1;
+    }
+
+    // Generate 32-bit acknowledgment bitfield for reliable packet delivery
+    // Each bit represents whether a packet sequence was received (1) or not (0)
+    // Bit 0 = ack-1, Bit 1 = ack-2, etc. (up to 32 sequences back)
+    static unsigned int generate_ack_bits( unsigned int ack, const PacketQueue& received_queue, unsigned int max_sequence ) noexcept
+    {
+      unsigned int ack_bits = 0;
+      
+      // Iterate through received packets to build acknowledgment bitfield
+      for ( const auto& packet : received_queue )
+      {
+        // Skip packets that are the ack sequence itself or newer
+        if ( packet.sequence == ack || sequence_more_recent( packet.sequence, ack, max_sequence ) )
+          continue;
+
+        // Calculate bit position for this sequence
+        const int bit_index = bit_index_for_sequence( packet.sequence, ack, max_sequence );
+        if ( bit_index >= 0 && bit_index <= 31 )
+        {
+          ack_bits |= (1U << bit_index);
+        }
+      }
+      
       return ack_bits;
     }
 
+    // Process acknowledgment packet to update RTT and move packets from pending to acked
+    // This is the core of the reliability system - handles both direct acks and bitfield acks
     static void process_ack( unsigned int ack, unsigned int ack_bits,
-                 PacketQueue & pending_ack_queue, PacketQueue & acked_queue,
-                 std::vector<unsigned int> & acks, unsigned int & acked_packets,
-                 float & rtt, unsigned int max_sequence )
+                           PacketQueue& pending_ack_queue, PacketQueue& acked_queue,
+                           std::vector<unsigned int>& acks, unsigned int& acked_packets,
+                           float& rtt, unsigned int max_sequence )
     {
       if ( pending_ack_queue.empty() )
         return;
 
-      PacketQueue::iterator itor = pending_ack_queue.begin();
+      // Process all packets in pending acknowledgment queue
+      auto itor = pending_ack_queue.begin();
       while ( itor != pending_ack_queue.end() )
       {
-        bool acked = false;
+        bool packet_acked = false;
 
+        // Check if this packet is directly acknowledged
         if ( itor->sequence == ack )
         {
-          acked = true;
+          packet_acked = true;
         }
-        else if ( sequence_more_recent( itor->sequence, ack, max_sequence ) )
+        // Check if packet is acknowledged via bitfield (for older packets)
+        else if ( !sequence_more_recent( itor->sequence, ack, max_sequence ) )
         {
-          int bit_index = bit_index_for_sequence( itor->sequence, ack, max_sequence );
+          const int bit_index = bit_index_for_sequence( itor->sequence, ack, max_sequence );
           if ( bit_index >= 0 && bit_index <= 31 )
           {
-            if ( ack_bits & ( 1 << bit_index ) )
-              acked = true;
+            packet_acked = (ack_bits & (1U << bit_index)) != 0;
           }
         }
 
-        if ( acked )
+        if ( packet_acked )
         {
+          // Update RTT using exponential smoothing (10% of new sample)
           rtt += ( itor->time - rtt ) * 0.1f;
 
+          // Move packet from pending to acked queue
           acked_queue.insert_sorted( *itor, max_sequence );
           acks.push_back( itor->sequence );
-          acked_packets++;
+          ++acked_packets;
           itor = pending_ack_queue.erase( itor );
         }
         else
+        {
           ++itor;
+        }
       }
     }
 
@@ -910,11 +985,15 @@ namespace net
       return max_sequence;
     }
 
-    void GetAcks( unsigned int ** acks, int & count )
+    // Get list of acknowledged packet sequences from last update cycle
+    // Used by higher-level code to determine which packets were successfully delivered
+    void GetAcks( unsigned int** acks_ptr, int& count ) noexcept
     {
-      if ( acks )
-        *acks = &this->acks[0];
-      count = (int) this->acks.size();
+      if ( acks_ptr && !acks.empty() )
+        *acks_ptr = acks.data();
+      else if ( acks_ptr )
+        *acks_ptr = nullptr;
+      count = static_cast<int>( acks.size() );
     }
 
     unsigned int GetSentPackets() const
@@ -1004,19 +1083,27 @@ namespace net
       }
     }
 
-    void UpdateStats()
+    // Update bandwidth statistics based on recent packet history
+    // Calculates both sent and acknowledged bandwidth for network monitoring
+    void UpdateStats() noexcept
     {
-      int sent_bytes_per_second = 0;
-      for ( PacketQueue::iterator itor = sent_queue.begin(); itor != sent_queue.end(); ++itor )
-        sent_bytes_per_second += itor->size;
-      int acked_bytes_per_second = 0;
-      for ( PacketQueue::iterator itor = acked_queue.begin(); itor != acked_queue.end(); ++itor )
+      // Calculate total bytes sent within the RTT window
+      int total_sent_bytes = 0;
+      for ( const auto& packet : sent_queue )
+        total_sent_bytes += packet.size;
+
+      // Calculate bytes that were acknowledged within reasonable time
+      int total_acked_bytes = 0;
+      for ( const auto& packet : acked_queue )
       {
-        if ( itor->time >= rtt_maximum )
-          acked_bytes_per_second += itor->size;
+        if ( packet.time >= rtt_maximum )
+          total_acked_bytes += packet.size;
       }
-      sent_bandwidth = sent_bytes_per_second / rtt_maximum;
-      acked_bandwidth = acked_bytes_per_second / rtt_maximum;
+
+      // Convert to bandwidth (bytes per second, then to kilobits per second)
+      const float time_window = rtt_maximum > 0.0f ? rtt_maximum : 1.0f;
+      sent_bandwidth = static_cast<float>(total_sent_bytes) / time_window;
+      acked_bandwidth = static_cast<float>(total_acked_bytes) / time_window;
     }
 
     unsigned int max_sequence;
@@ -1259,4 +1346,4 @@ namespace net
 
 } // namespace net
 
-#endif // NET_VITA_H 
+#endif // NET_VITA_H

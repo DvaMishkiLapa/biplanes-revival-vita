@@ -26,6 +26,10 @@
 #include <include/textures.hpp>
 #include <include/variables.hpp>
 
+#ifdef VITA_PLATFORM
+#include <lib/Net-vita.h>
+#endif
+
 
 void
 Menu::screen_mp()
@@ -249,8 +253,12 @@ Menu::screen_mp_dc_host()
   {
     draw_text( "Press [X] to finish    ",  0.250f, 0.725f );
     draw_text( "     specifying port...     ",  0.250f, 0.775f );
-    draw_text( "Select from 1024-9292", 0.250f, 0.825f );
-    draw_text( "         or 40000-65535", 0.250f, 0.875f );
+#ifdef VITA_PLATFORM
+    draw_text( "Select from " + std::to_string(VitaConfig::SAFE_PORT_MIN) + "-" + std::to_string(VitaConfig::SAFE_PORT_MAX), 0.250f, 0.825f );
+    draw_text( "         or " + std::to_string(VitaConfig::SAFE_PORT_ALT_MIN) + "-" + std::to_string(VitaConfig::SAFE_PORT_ALT_MAX), 0.250f, 0.875f );
+#else
+    draw_text( "Select from 1025-65535", 0.250f, 0.825f );
+#endif
     return;
   }
 
@@ -267,7 +275,11 @@ Menu::screen_mp_dc_host()
     case MENU_MP_DC_HOST::SPECIFY_PORT:
     {
       draw_text( "Press [X] to specify port", 0.005f, 0.725f );
-      draw_text( "Select from 1024-9292", 0.005f, 0.775f );
+#ifdef VITA_PLATFORM
+      draw_text( "Select from " + std::to_string(VitaConfig::SAFE_PORT_MIN) + "-" + std::to_string(VitaConfig::SAFE_PORT_MAX), 0.005f, 0.775f );
+#else
+      draw_text( "Select from 1025-65535", 0.005f, 0.775f );
+#endif
       draw_text( "         or 40000-65535", 0.005f, 0.825f );
       break;
     }
@@ -333,8 +345,12 @@ Menu::screen_mp_dc_join()
   {
     draw_text( "Press [X] to finish", 0.250f, 0.600f );
     draw_text( "specifying server port  ", 0.250f, 0.650f );
-    draw_text( "Select from 1024-9292", 0.250f, 0.700f );
-    draw_text( "         or 40000-65535", 0.250f, 0.750f );
+#ifdef VITA_PLATFORM
+    draw_text( "Select from " + std::to_string(VitaConfig::SAFE_PORT_MIN) + "-" + std::to_string(VitaConfig::SAFE_PORT_MAX), 0.250f, 0.700f );
+    draw_text( "         or " + std::to_string(VitaConfig::SAFE_PORT_ALT_MIN) + "-" + std::to_string(VitaConfig::SAFE_PORT_ALT_MAX), 0.250f, 0.750f );
+#else
+    draw_text( "Select from 1025-65535", 0.250f, 0.700f );
+#endif
     return;
   }
 
@@ -362,8 +378,12 @@ Menu::screen_mp_dc_join()
     case MENU_MP_DC_JOIN::SPECIFY_PORT:
     {
       draw_text( "Press [X] to specify port", 0.005f, 0.650f );
-      draw_text( "Select from 1024-9292", 0.005f, 0.700f );
-      draw_text( "         or 40000-65535", 0.005f, 0.750f );
+#ifdef VITA_PLATFORM
+      draw_text( "Select from " + std::to_string(VitaConfig::SAFE_PORT_MIN) + "-" + std::to_string(VitaConfig::SAFE_PORT_MAX), 0.005f, 0.700f );
+      draw_text( "         or " + std::to_string(VitaConfig::SAFE_PORT_ALT_MIN) + "-" + std::to_string(VitaConfig::SAFE_PORT_ALT_MAX), 0.005f, 0.750f );
+#else
+      draw_text( "Select from 1025-65535", 0.005f, 0.700f );
+#endif
       break;
     }
 

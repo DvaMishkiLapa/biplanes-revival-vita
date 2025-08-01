@@ -22,8 +22,11 @@
 #include <include/network_state.hpp>
 #include <include/menu.hpp>
 #include <include/variables.hpp>
+#include <include/time.hpp>
 
 #include <lib/picojson.h>
+#include <cstdio>
+#include <algorithm>
 
 
 net::Address MatchMaker::GetServerAddress()
@@ -107,14 +110,14 @@ MatchMaker::sendStatus(
 
   const auto payload_string = picojson::value(payload_json).serialize();
 
-  networkState().connection->socket.Send(
+  bool sendResult = networkState().connection->socket.Send(
     destination,
     payload_string.c_str(),
     payload_string.size() );
 }
 
 void
-MatchMaker::Update()
+ MatchMaker::Update()
 {
   mTimer.Update();
 
@@ -290,16 +293,20 @@ MatchMaker::Update()
     {
       if ( mTimer.isReady() == false )
         break;
-
+      log_message( "NETWORK MMAKE: NAT_PUNCH_0 - Executing phase 0", "\n" );
       sendStatus( MatchConnectStatus::P2PACCEPT, mOpponentAddress );
-
       if ( mClientNodeType == SRV_CLI::CLIENT )
       {
-//        wait for opponent's NAT entry
+        // wait for opponent's NAT entry
+        log_message( "NETWORK MMAKE: CLIENT - Setting 5.0s timer", "\n" );
         mTimer.SetNewTimeout(5.0f);
         mTimer.Start();
       }
-
+      else
+      {
+        log_message( "NETWORK MMAKE: SERVER - Using existing timer (should be ready)", "\n" );
+      }
+      log_message( "NETWORK MMAKE: Moving to NAT_PUNCH_1, timer remaining: " + std::to_string(mTimer.remainderTime()), "\n" );
       mState = MatchMakerState::MATCH_NAT_PUNCH_1;
 
       break;
@@ -310,14 +317,16 @@ MatchMaker::Update()
       if ( mTimer.isReady() == false )
         break;
 
-//      send several: first packet could be dropped by NAT
+      log_message( "NETWORK MMAKE: NAT_PUNCH_1 - Executing phase 1", "\n" );
       sendStatus( MatchConnectStatus::P2PACCEPT, mOpponentAddress );
       sendStatus( MatchConnectStatus::P2PACCEPT, mOpponentAddress );
       sendStatus( MatchConnectStatus::P2PACCEPT, mOpponentAddress );
 
+      log_message( "NETWORK MMAKE: Setting 0.2s timer for phase 2", "\n" );
       mTimer.SetNewTimeout(0.200f);
       mTimer.Start();
 
+      log_message( "NETWORK MMAKE: Moving to NAT_PUNCH_2, timer remaining: " + std::to_string(mTimer.remainderTime()), "\n" );
       mState = MatchMakerState::MATCH_NAT_PUNCH_2;
 
       break;
@@ -328,6 +337,7 @@ MatchMaker::Update()
       if ( mTimer.isReady() == false )
         break;
 
+      log_message( "NETWORK MMAKE: NAT_PUNCH_2 - Executing final phase", "\n" );
       sendStatus( MatchConnectStatus::P2PACCEPT, mOpponentAddress );
       sendStatus( MatchConnectStatus::P2PACCEPT, mOpponentAddress );
       sendStatus( MatchConnectStatus::P2PACCEPT, mOpponentAddress );
@@ -347,18 +357,61 @@ MatchMaker::Update()
     case MatchMakerState::MATCH_NAT_PUNCH_3:
     {
       char buf[512] {};
+      net::Address receivedFrom;
 
+      // Try to receive ANY packet to see if we get anything at all
       int recvd_bytes = networkState().connection->socket.Receive(
-        mOpponentAddress, buf, 512 );
+        receivedFrom, buf, 512 );
 
       if ( recvd_bytes > 0 )
       {
-        mState = MatchMakerState::MATCH_READY;
-        break;
+        log_message( "NETWORK MMAKE: Received " + std::to_string(recvd_bytes) + " bytes from " + receivedFrom.ToString(), "\n" );
+
+        // Log first few bytes for debugging
+        std::string hexData = "";
+        for (int i = 0; i < std::min(8, recvd_bytes); i++) {
+          char hexByte[4];
+          sprintf(hexByte, "%02X ", (unsigned char)buf[i]);
+          hexData += hexByte;
+        }
+        log_message( "NETWORK MMAKE: Packet data (first 8 bytes): " + hexData, "\n" );
+
+        if ( receivedFrom == mOpponentAddress )
+        {
+          log_message( "NETWORK MMAKE: Received reply from correct opponent! Connection established!", "\n" );
+          mState = MatchMakerState::MATCH_READY;
+          break;
+        }
+        else
+        {
+          log_message( "NETWORK MMAKE: Received reply from WRONG address!", "\n" );
+          log_message( "NETWORK MMAKE: Expected: " + mOpponentAddress.ToString(), "\n" );
+          log_message( "NETWORK MMAKE: Got from: " + receivedFrom.ToString(), "\n" );
+
+          // Maybe still try to connect if it's reasonable
+          if (receivedFrom.GetAddress() == mOpponentAddress.GetAddress()) {
+            log_message( "NETWORK MMAKE: Same IP but different port - accepting connection anyway", "\n" );
+            mOpponentAddress = receivedFrom; // Update opponent address
+            mState = MatchMakerState::MATCH_READY;
+            break;
+          }
+        }
+      }
+      else
+      {
+        // Log every 5 seconds to show we're still waiting
+        static float debugTimer = 0.0f;
+        debugTimer += 0.016f; // rough frame time
+        if (debugTimer > 5.0f) {
+          debugTimer = 0.0f;
+          log_message( "NETWORK MMAKE: Still waiting for opponent reply... (timer: " + std::to_string(mTimer.remainderTime()) + "s)", "\n" );
+        }
       }
 
       if ( mTimer.isReady() == true )
       {
+        log_message( "NETWORK MMAKE: TIMEOUT waiting for opponent reply after " + std::to_string(MATCH_MAKE_TIMEOUT) + " seconds", "\n" );
+        log_message( "NETWORK MMAKE: Expected reply from: " + mOpponentAddress.ToString(), "\n" );
         mState = MatchMakerState::MATCH_TIMEOUT;
         break;
       }

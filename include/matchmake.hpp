@@ -77,7 +77,7 @@ class MatchMaker
   int32_t mClientId {};
 
   MatchMakerState mState {};
-  Timer mTimer {0.0f};
+  Timer mTimer {1.0f}; // Initialize with non-zero timeout to prevent immediate isReady()
 
   net::Address mOpponentAddress {};
   SRV_CLI mClientNodeType {};

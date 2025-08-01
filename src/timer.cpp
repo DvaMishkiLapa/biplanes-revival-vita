@@ -20,6 +20,7 @@
 
 #include <include/timer.hpp>
 #include <include/time.hpp>
+#include <algorithm>
 
 
 Timer::Timer(
@@ -36,10 +37,13 @@ Timer::Update()
   if ( mIsCounting == false )
     return;
 
+  // Clamp deltaTime to prevent huge jumps (e.g., after pause or lag)
+  const double maxDeltaTime = 0.1; // Max 100ms per frame
+  const double clampedDeltaTime = std::min(deltaTime, maxDeltaTime);
 
   if ( mCounter > 0.0f )
   {
-    mCounter -= deltaTime;
+    mCounter -= clampedDeltaTime;
 
     if ( mCounter < 0.0f )
       mCounter = 0.0f;

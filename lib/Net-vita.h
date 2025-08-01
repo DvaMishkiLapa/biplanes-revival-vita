@@ -15,6 +15,7 @@
   #include <sys/socket.h>
   #include <netinet/in.h>
   #include <arpa/inet.h>
+  #include <netdb.h>
   #include <unistd.h>
   #include <errno.h>
 #else
@@ -61,22 +62,22 @@ namespace net
 
     std::string GetA() const
     {
-      return std::to_string( ( unsigned char ) ( address & 0xFF ) );
+      return std::to_string( ( unsigned char ) ( ( address >> 24 ) & 0xFF ) );
     }
 
     std::string GetB() const
     {
-      return std::to_string( ( unsigned char ) ( ( address >> 8 ) & 0xFF ) );
+      return std::to_string( ( unsigned char ) ( ( address >> 16 ) & 0xFF ) );
     }
 
     std::string GetC() const
     {
-      return std::to_string( ( unsigned char ) ( ( address >> 16 ) & 0xFF ) );
+      return std::to_string( ( unsigned char ) ( ( address >> 8 ) & 0xFF ) );
     }
 
     std::string GetD() const
     {
-      return std::to_string( ( unsigned char ) ( ( address >> 24 ) & 0xFF ) );
+      return std::to_string( ( unsigned char ) ( address & 0xFF ) );
     }
 
     unsigned short GetPort() const
@@ -107,6 +108,9 @@ namespace net
 
     static Address FromString( const std::string& addrStr, const std::string& portStr )
     {
+      if ( checkIp(addrStr).empty() == true )
+        return {};
+
       std::stringstream stream {addrStr};
       int a, b, c, d;
       char ch;
@@ -126,11 +130,52 @@ namespace net
     {
       log_message( "NETWORK: Resolving hostname '", hostname, "'\n" );
 
-      // For Vita, we'll use a simple approach
-      // In a real implementation, you might want to use sceNetGetHostByName
-      // For now, we'll just return an empty address
-      log_message( "NETWORK: Hostname resolution not implemented for Vita yet\n" );
-      return {};
+      struct addrinfo hints = {};
+      struct addrinfo* addressInfo = nullptr;
+
+      hints.ai_family = AF_INET;      // IPv4 only
+      hints.ai_socktype = SOCK_DGRAM; // UDP
+      hints.ai_protocol = IPPROTO_UDP;
+
+      const int errorCode = getaddrinfo(
+        hostname.c_str(),
+        nullptr, 
+        &hints,
+        &addressInfo );
+
+      if ( errorCode != 0 )
+      {
+        log_message( "NETWORK: Failed to resolve hostname '", hostname, "': getaddrinfo returned " + std::to_string(errorCode), "\n" );
+        return {};
+      }
+
+      if ( addressInfo == nullptr )
+      {
+        log_message( "NETWORK: Failed to resolve hostname '", hostname, "': no address info returned\n" );
+        return {};
+      }
+
+      // Check if we got an IPv4 address
+      if ( addressInfo->ai_family != AF_INET )
+      {
+        log_message( "NETWORK: Failed to resolve hostname '", hostname, "': expected AF_INET family\n" );
+        freeaddrinfo( addressInfo );
+        return {};
+      }
+
+      const auto resolvedAddress = reinterpret_cast<struct sockaddr_in*>( addressInfo->ai_addr );
+
+
+      const Address result
+      {
+        ntohl( resolvedAddress->sin_addr.s_addr ),
+        ntohs( resolvedAddress->sin_port )
+      };
+
+      log_message( "NETWORK: Resolved hostname '", hostname, "' is " + result.ToString( false ), "\n" );
+
+      freeaddrinfo( addressInfo );
+      return result;
     }
 
   private:

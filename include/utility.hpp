@@ -42,6 +42,7 @@ void log_message(
 void logSDL2Version();
 bool stats_write();
 bool statsRead();
+bool isInsaneUnlocked();
 
 std::string checkIp( const std::string& );
 bool checkPort( const std::string& );

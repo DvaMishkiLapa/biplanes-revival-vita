@@ -25,14 +25,14 @@ recreated for PC (originally developed by Morpheme Ltd. in 2004).
 
 ## Download the game
 
-- VitaDB (soon);
+- [VitaDB](https://www.rinnegatamante.eu/vitadb/#/info/1295);
 - From this repository's [Releases page](https://github.com/DvaMishkiLapa/biplanes-revival-vita/releases);
 
 Custom soundpacks and assets are available
 on [regular-dev website](https://regular-dev.org/biplanes-revival)
 and on [regular-dev itch.io page](https://regular-dev.itch.io/biplanes-revival)
 
-**Don't forget to upload the assets to the folder `ux0:/data/biplanes_revival`!**
+**Don't forget to upload the [assets to the folder `ux0:/data/biplanes_revival`](https://github.com/DvaMishkiLapa/biplanes-revival-vita/releases/download/v1.2.1/biplanes_revival_data.zip)!**
 
 ## Features
 

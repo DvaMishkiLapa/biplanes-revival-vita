@@ -353,4 +353,6 @@ updateTotalStats()
   totalStats.rescues      += playerStats.rescues;
   totalStats.shots        += playerStats.shots;
   totalStats.wins         += playerStats.wins;
+  totalStats.wins_vs_developer += playerStats.wins_vs_developer;
+  totalStats.wins_vs_insane += playerStats.wins_vs_insane;
 }

@@ -355,4 +355,8 @@ updateTotalStats()
   totalStats.wins         += playerStats.wins;
   totalStats.wins_vs_developer += playerStats.wins_vs_developer;
   totalStats.wins_vs_insane += playerStats.wins_vs_insane;
+
+  // Save statistics to file immediately after updating
+  if ( game.output.stats == true )
+    stats_write();
 }

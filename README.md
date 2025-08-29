@@ -80,7 +80,8 @@ Then, install `./build/BiplanesRevival.vpk` file on your PS Vita.
 - Thank you, [regular-dev](https://github.com/regular-dev), for playing this game as I did when I was a child. And for finding the strength to revive it;
 - Thank you to all the contributors to [VitaSDK](https://vitasdk.org), [Vitadev Package manager](https://github.com/vitasdk/vdpm);
 - [Vita Nuova](https://discord.com/invite/PyCaBx9) and [HENkaku](https://discord.com/invite/m7MwpKA) Discord servers;
-- [gl33ntwine](https://github.com/v-atamanenko) for creating [the awesome article](https://gl33ntwine.com/posts/develop-for-vita).
+- [gl33ntwine](https://github.com/v-atamanenko) for creating [the awesome article](https://gl33ntwine.com/posts/develop-for-vita);
+- [PG Team](https://bento.me/pgteam) for existing and for what they do for the PS Vita community.
 
 ### Thanks to the authors of the original port
 

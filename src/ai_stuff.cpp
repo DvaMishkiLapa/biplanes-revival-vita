@@ -608,10 +608,10 @@ AiStatePlane::AiStatePlane(
 
     case DIFFICULTY::INSANE:
     {
-      throttleWeight = ReactionTimeToWeights(0.05f, 0.05f);
-      pitchWeight = ReactionTimeToWeights(0.05f, 0.05f);
-      shootWeight = ReactionTimeToWeights(0.02f, 0.02f);
-      jumpWeight = ReactionTimeToWeights(0.02f, 0.02f);
+      throttleWeight = ReactionTimeToWeights(0.02f, 0.02f);
+      pitchWeight = ReactionTimeToWeights(0.02f, 0.02f);
+      shootWeight = ReactionTimeToWeights(0.01f, 0.01f);
+      jumpWeight = ReactionTimeToWeights(0.01f, 0.01f);
 
       break;
     }

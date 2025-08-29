@@ -1033,6 +1033,17 @@ void
 Menu::ReturnToMainMenu()
 {
   auto& game = gameState();
+
+  // Update statistics before returning to main menu
+  if ( game.isRoundRunning == true && game.isRoundFinished == false )
+  {
+    updateRecentStats();
+
+    if ( game.gameMode == GAME_MODE::HUMAN_VS_BOT ||
+         game.gameMode == GAME_MODE::HUMAN_VS_HUMAN )
+      updateTotalStats();
+  }
+
   game.isRoundRunning = false;
   game.isRoundFinished = false;
   game.isPaused = false;

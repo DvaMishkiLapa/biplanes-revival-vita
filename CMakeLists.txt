@@ -16,7 +16,7 @@ project(${TARGET} VERSION ${${TARGET}_VERSION} LANGUAGES C CXX)
 include("${VITASDK}/share/vita.cmake" REQUIRED)
 set(VITA_APP_NAME "${TARGET}")
 set(VITA_TITLEID  "BPREVIVAL")  # Valid Vita title ID format
-set(VITA_VERSION  "01.21")
+set(VITA_VERSION  "12.11")
 
 if(DEFINED ENV{VITA_IP})
   set(VITA_IP $ENV{VITA_IP})
